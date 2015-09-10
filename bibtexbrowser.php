@@ -2006,7 +2006,7 @@ function DefaultBibliographyStyle(&$bibentry) {
 
   // author
   if ($bibentry->hasField('author')) {
-    $coreInfo = $title . ' (<span class="bibauthor">'.$bibentry->getFormattedAuthorsImproved().'</span>)';}
+    $coreInfo = ' <span class="bibauthor">'.$bibentry->getFormattedAuthorsImproved().'</span>, ' . $title ;}
   else $coreInfo = $title;
 
   // core info usually contains title + author
@@ -2065,11 +2065,22 @@ function DefaultBibliographyStyle(&$bibentry) {
 
   if ($publisher!='') $entry[] = '<span class="bibpublisher">'.$publisher.'</span>';
 
-
-  if ($bibentry->hasField('volume')) $entry[] =  __('volume').' '.$bibentry->getField("volume");
+  /* Volume and issue number (some journals use Issue while some use Number.) */
+  if ($bibentry->hasField('volume')) { //$entry[] =  __('volume').' '.$bibentry->getField("volume");  
+     if ($bibentry->hasField('number')) {$entry[] = '<span itemprop="volumenumber">'.$bibentry->getField("volume").'</span>'.'(<span itemprop="issuenumber">'.$bibentry->getField("number").'</span>)';}
+     elseif ($bibentry->hasField('issue')) {$entry[] = '<span itemprop="volumenumber">'.$bibentry->getField("volume").'</span>'.'(<span itemprop="issuenumber">'.$bibentry->getField("issue").'</span>)';}
+     else $entry[] =  __('volume').' '.$bibentry->getField("volume");  
+    }
 
 
   if ($bibentry->hasField(YEAR)) $entry[] = '<span itemprop="datePublished">'.$bibentry->getYear().'</span>';
+
+  
+  if ($bibentry->hasField('pages')) $entry[] = '<span itemprop="pagenumbers">'.$bibentry->getField("pages").'</span>';
+
+  
+  // DOI link.
+  // if ($bibentry->hasField('doi')) {$entry[] = '<span itemprop="doilink"><a href=http://doi.org/"'.$bibentry->getField('doi').'">DOI:'.$bibentry->getField("doi").'</a></span>';}
 
   $result = implode(", ",$entry).'.';
 
