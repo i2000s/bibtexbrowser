@@ -2015,13 +2015,13 @@ function DefaultBibliographyStyle(&$bibentry) {
   // now the book title
   $booktitle = '';
   if ($type=="inproceedings") {
-      $booktitle = __('In').' '.'<span itemprop="isPartOf">'.$bibentry->getField(BOOKTITLE).'</span>'; }
+      $booktitle = '<span itemprop="isPartOf">'.$bibentry->getField(BOOKTITLE).'</span>'; }
   if ($type=="incollection") {
       $booktitle = __('Chapter in').' '.'<span itemprop="isPartOf">'.$bibentry->getField(BOOKTITLE).'</span>';}
   if ($type=="inbook") {
       $booktitle = __('Chapter in').' '.$bibentry->getField('chapter');}
   if ($type=="article") {
-      $booktitle = __('In').' '.'<span itemprop="isPartOf">'.$bibentry->getField("journal").'</span>';}
+      $booktitle = '<span itemprop="isPartOf">'.$bibentry->getField("journal").'</span>';}
 
   //// we may add the editor names to the booktitle
   $editor='';
