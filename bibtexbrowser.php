@@ -108,10 +108,12 @@ function bibtexbrowser_configure($key, $value) {
 @define('BIBTEXBROWSER_PDF_LINKS',true);
 // do we add [doi] links ?
 @define('BIBTEXBROWSER_DOI_LINKS',true);
+// do we add [arxiv] links ?
+@define('BIBTEXBROWSER_ARXIV_LINKS',true);
 // do we add [gsid] links (Google Scholar)?
 @define('BIBTEXBROWSER_GSID_LINKS',true);
 
-// should pdf, doi, url, gsid links be opened in a new window?
+// should pdf, doi, url, arxiv, gsid links be opened in a new window?
 @define('BIBTEXBROWSER_LINKS_IN_NEW_WINDOW',false);
 
 // should authors be linked to [none/homepage/resultpage]
@@ -189,7 +191,7 @@ function bibtexbrowser_configure($key, $value) {
 // this is usually resolved to bibtexbrowser.php
 // but can be overridden in bibtexbrowser.local.php
 // for instance with @define('BIBTEXBROWSER_URL',''); // links to the current page with ?
-@define('BIBTEXBROWSER_URL',basename(__FILE__));
+@define('BIBTEXBROWSER_URL',basename($_SERVER['bibtexbrowser'],'.php')); // basename(__FILE__));
 
 // *************** END CONFIGURATION
 
@@ -1146,6 +1148,7 @@ class BibEntry {
   function getBibLink($iconurl=NULL) {
     $bibstr = $this->getIconOrTxt('bibtex',$iconurl);
     $href = 'href="'.$this->getURL().'"';
+    // $href = 'href="'.$this->basename($_SERVER['bibtexbrowser'],'.php').'"';
     // we add biburl and title to be able to retrieve this important information
     // using Xpath expressions on the XHTML source
     $link = "<a".(BIBTEXBROWSER_BIB_IN_NEW_WINDOW?' target="_blank" ':'')." class=\"biburl\" title=\"".$this->getKey()."\" {$href}>$bibstr</a>";
@@ -1183,6 +1186,15 @@ class BibEntry {
     $str = $this->getIconOrTxt('cites',$iconurl);
     if ($this->hasField('gsid')) {
         return ' <a'.(BIBTEXBROWSER_LINKS_IN_NEW_WINDOW?' target="_blank" ':'').' href="http://scholar.google.com/scholar?cites='.$this->getField("gsid").'">'.$str.'</a>';
+    }
+    return '';
+  }
+  
+  /** arXiv are a special kind of links, where the url depends on the arXiv number. */
+  function getArxivLink($iconurl=NULL) {
+    $str = $this->getIconOrTxt('arxiv',$iconurl);
+    if ($this->hasField('arxiv')) {
+        return '<a'.(BIBTEXBROWSER_LINKS_IN_NEW_WINDOW?' target="_blank" ':'').' href="http://arxiv.org/abs/'.$this->getField('arxiv').'">'.$str.'</a>';
     }
     return '';
   }
@@ -1662,7 +1674,7 @@ class BibEntry {
     $entry = htmlspecialchars($this->getFullText());
 
     // Fields that should be hyperlinks
-    $hyperlinks = array('url' => '%O', 'file' => '%O', 'pdf' => '%O', 'doi' => 'http://dx.doi.org/%O', 'gsid' => 'http://scholar.google.com/scholar?cites=%O');
+    $hyperlinks = array('doi' => 'http://dx.doi.org/%O', 'arxiv' => 'http://arxiv.org/abs/%O', 'url' => '%O', 'file' => '%O', 'pdf' => '%O', 'gsid' => 'http://scholar.google.com/scholar?cites=%O');
 
     foreach ($hyperlinks as $field => $url) {
       if ($this->hasField($field)) {
@@ -1737,6 +1749,11 @@ function bib2links_default(&$bibentry) {
 
   if (BIBTEXBROWSER_DOI_LINKS) {
     $link = $bibentry->getDoiLink();
+    if ($link != '') { $links[] = $link; };
+  }
+  
+  if (BIBTEXBROWSER_ARXIV_LINKS) {
+    $link = $bibentry->getArxivLink();
     if ($link != '') { $links[] = $link; };
   }
 
