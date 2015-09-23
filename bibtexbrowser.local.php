@@ -7,10 +7,11 @@
     define('BIBLIOGRAPHYSTYLE','PhysicsBibliographyStyle');
     // define('BIBTEXBROWSER_USE_PROGRESSIVE_ENHANCEMENT',false);
     define('BIBLIOGRAPHYSECTIONS','my_sectioning');
-    define('BIBTEXBROWSER_CSS', 'bibtexbrowser.css');
-    define('BIBTEXBROWSER_URL','');
+    // define('BIBTEXBROWSER_CSS', '/bibtexbrowser.css');
+    // define('BIBTEXBROWSER_URL','');
     define('METADATA_EPRINTS',true);
     // define('BIBTEXBROWSER_EMBEDDED_WRAPPER', 'CustomWrapper');
+    // define('BIBTEXBROWSER_DEFAULT_TEMPLATE','CustomHTMLTemplate');
 
     function my_sectioning() {
         return
@@ -139,6 +140,7 @@
         }
     }
 ?>
+
 <?php
     Class CustomWrapper {
         function CustomWrapper(&$content, $metatags=array()) {
@@ -149,9 +151,9 @@
             <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
                 <head>
                     <meta http-equiv="Content-type" content="application/xhtml+xml; charset=utf-8" />
-                    <link href="/wp-content/themes/vantage-cquic/style.css" rel="stylesheet" type="text/css" />
+                    <link href="wp-content/themes/vantage-cquic/style.css" rel="stylesheet" type="text/css" />
                     <link href="bibtexbrowser.css" rel="stylesheet" type="text/css" />
-                    <script language="javascript" src="/wp-content/themes/vantage-cquic/js/1.7.2.jquery.min.js"></script>
+                    <script language="javascript" src="wp-content/themes/vantage-cquic/js/1.7.2.jquery.min.js"></script>
                     <title>
                     <?php
                     if ($content instanceof BibEntryDisplay) {
@@ -228,3 +230,13 @@
         }
     } 
 ?> 
+
+<?php
+//   function CustomHTMLTemplate(&$content) {
+        // require( 'wp-blog-header.php');
+//        include ( TEMPLATEPATH . '/content.php');
+//        echo '<div id="bodyText">';      
+//          $content->display();      
+//        echo '</div>';
+//    } -->
+?>

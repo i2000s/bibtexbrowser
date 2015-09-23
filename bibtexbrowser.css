@@ -9,12 +9,13 @@
 /* Second level headers */
 .sheader {  font-weight: bold;
   /* font-size: large; */
-  background-color: #003366;
-  color: #0DE3FF; /* #ffffff; */
+  /* background-color: #003366; */
+  color: #003366; /* #0DE3FF; */ /* #ffffff; */
   padding: 2px;
   margin-bottom: 0px;
   margin-top: 7px;
-  border-bottom: #ff6633 2px solid;}
+  /* border-bottom: #ff6633 2px solid; */
+}
   
 /* 3rd level headers, equivalent H3  */
 .theader {
