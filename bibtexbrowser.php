@@ -1674,13 +1674,22 @@ class BibEntry {
     $entry = htmlspecialchars($this->getFullText());
 
     // Fields that should be hyperlinks
-    $hyperlinks = array('doi' => 'http://dx.doi.org/%O', 'arxiv' => 'http://arxiv.org/abs/%O', 'url' => '%O', 'file' => '%O', 'pdf' => '%O', 'gsid' => 'http://scholar.google.com/scholar?cites=%O');
+    // the order matters
+    $hyperlinks = array('url' => '%O', 'file' => '%O', 'pdf' => '%O', 'doi' => 'http://dx.doi.org/%O', 'arxiv' => 'http://arxiv.org/abs/%O','gsid' => 'http://scholar.google.com/scholar?cites=%O');
 
+    $vals = array();
     foreach ($hyperlinks as $field => $url) {
       if ($this->hasField($field)) {
         $href = str_replace('%O', $this->getField($field), $url);
         // this is not a parsing but a simple replacement
-        $entry = str_replace($this->getField($field), '<a'.(BIBTEXBROWSER_LINKS_IN_NEW_WINDOW?' target="_blank" ':'').' href="'.$href.'">'.$this->getField($field).'</a>', $entry);
+        $entry = str_replace($this->getField($field), '___'.$field.'___', $entry);
+        $vals[$field] = $href;
+      }
+    }
+    foreach ($vals as $field => $href) {
+      if ($this->hasField($field)) {
+        // this is not a parsing but a simple replacement
+        $entry = str_replace('___'.$field.'___', '<a'.(BIBTEXBROWSER_LINKS_IN_NEW_WINDOW?' target="_blank" ':'').' href="'.$href.'">'.$this->getField($field).'</a>', $entry);
       }
     }
 
@@ -2865,6 +2874,8 @@ class SimpleDisplay  {
   function metadata() {
     if (BIBTEXBROWSER_ROBOTS_NOINDEX) {
       return array(array('robots','noindex'));
+    } else {
+      return array();
     }
   }
 
