@@ -23,12 +23,22 @@ define('BIBTEXBROWSER','v__GITHUB__');
 
 // support for configuration
 // set with bibtexbrowser_configure, get with config_value
-// you may have bibtexbrowser_configure('ENCODING', 'latin1') in bibtexbrowser.local.php
+// you may have bibtexbrowser_configure('foo', 'bar') in bibtexbrowser.local.php
 global $CONFIGURATION;
 $CONFIGURATION = array();
 function bibtexbrowser_configure($key, $value) {
   global $CONFIGURATION;
   $CONFIGURATION[$key]=$value;
+  if (!defined($key)) { define($key, $value); } // for backward compatibility
+}
+function bibtexbrowser_configuration($key) {
+  global $CONFIGURATION;
+  if (isset($CONFIGURATION[$key])) {return $CONFIGURATION[$key];}
+  if (defined($key)) {return constant($key);}
+  throw new Exception('no such configuration parameter: '.$key);
+}
+function c($key) { // shortcut
+  return bibtexbrowser_configuration($key);
 }
 
 // *************** CONFIGURATION
@@ -37,10 +47,16 @@ function bibtexbrowser_configure($key, $value) {
 // the changes that require existing bibtexbrowser symbols should be in bibtexbrowser.after.php (included at the end of this file)
 @include(preg_replace('/\.php$/','.local.php',__FILE__));
 
-// there is no encoding transformation from the bibtex file to the html file
-// if your bibtex file contains 8 bits characters in utf-8
-// change the following parameter
-@define('ENCODING','UTF-8');//@define('ENCODING','iso-8859-1');//define('ENCODING','windows-1252');
+// the encoding of your bibtex file
+@define('BIBTEX_INPUT_ENCODING','UTF-8');//@define('BIBTEX_INPUT_ENCODING','iso-8859-1');//define('BIBTEX_INPUT_ENCODING','windows-1252');
+// the encoding of the HTML output
+@define('OUTPUT_ENCODING','UTF-8');
+
+// print a warning if deprecated variable is used
+if (defined('ENCODING')) {
+  echo 'ENCODING has been replaced by BIBTEX_INPUT_ENCODING and OUTPUT_ENCODING';
+}
+
 // number of bib items per page
 // we use the same parameter 'num' as Google
 @define('PAGE_SIZE',isset($_GET['num'])?(preg_match('/^\d+$/',$_GET['num'])?$_GET['num']:10000):14);
@@ -128,10 +144,20 @@ function bibtexbrowser_configure($key, $value) {
 // for ordered_list, the index is given by HTML directly (in increasing order)
 @define('BIBTEXBROWSER_LAYOUT','table');
 
+// should the original bibtex be displayed or a reconstructed one with filtering
+// values: original/reconstructed
+// warning, with reconstructed, the latex markup for accents/diacritics is lost
+@define('BIBTEXBROWSER_BIBTEX_VIEW','original');
+// a list of fields that will not be shown in the bibtex view if BIBTEXBROWSER_BIBTEX_VIEW=reconstructed
+@define('BIBTEXBROWSER_BIBTEX_VIEW_FILTEREDOUT','comment|note|file');
+
+// should Latex macros be executed (e.g. \'e -> é
+@define('BIBTEXBROWSER_USE_LATEX2HTML',true);
+
 // Which is the first html <hN> level that should be used in embedded mode?
 @define('BIBTEXBROWSER_HTMLHEADINGLEVEL', 2);
 
-@define('BIBTEXBROWSER_ACADEMIC_TOC', true);
+@define('BIBTEXBROWSER_ACADEMIC_TOC', false);
 
 @define('BIBTEXBROWSER_DEBUG',false);
 
@@ -657,7 +683,7 @@ see snippet of [[#StateBasedBibParser]]
 class XMLPrettyPrinter {
   function beginFile() {
     header('Content-type: text/xml;');
-    print '<?xml version="1.0" encoding="'.ENCODING.'"?>';
+    print '<?xml version="1.0" encoding="'.OUTPUT_ENCODING.'"?>';
     print '<bibfile>';
   }
 
@@ -989,7 +1015,7 @@ function latex2html($line) {
 /** encodes strings for Z3988 URLs. Note that & are encoded as %26 and not as &amp. */
 function s3988($s) {
   // first remove the HTML entities (e.g. &eacute;) then urlencode them
-  return urlencode(html_entity_decode($s, ENT_NOQUOTES, ENCODING));
+  return urlencode($s);
 }
 
 /**
@@ -1093,8 +1119,23 @@ class BibEntry {
     // but instead could contain HTML code (with links using the character "~" for example)
     // so "comment" is not transformed too
     if ($name!='url' && $name!='comment') {
+     // 1. trim space
       $value = xtrim($value);
-      $value = latex2html($value);
+      
+      if (c('BIBTEXBROWSER_USE_LATEX2HTML')) {
+        // 2. transform Latex markup to HTML entities (easier than a one to one mapping to each character)
+        // HTML entity is an intermediate format
+        $value = latex2html($value);
+        
+        // 3. transform to the target output encoding
+        $value = html_entity_decode($value, ENT_QUOTES|ENT_XHTML, OUTPUT_ENCODING);
+      }
+      
+      // 4. transform existing encoded character in the new format
+      if (function_exists('mb_convert_encoding') && OUTPUT_ENCODING != BIBTEX_INPUT_ENCODING) {
+        $vaue = mb_convert_encoding($value, OUTPUT_ENCODING, BIBTEX_INPUT_ENCODING);
+      }
+
     } else {
       //echo "xx".$value."xx\n";
     }
@@ -1327,7 +1368,7 @@ class BibEntry {
   */
   function formatAuthorInitials($author){
       list($firstname, $lastname) = splitFullName($author);
-      if ($firstname!='') return $lastname.' '.preg_replace("/(\p{Lu})\w*[- ]*/S","$1", $firstname);
+      if ($firstname!='') return $lastname.' '.preg_replace("/(\p{Lu})\w*[- ]*/Su","$1", $firstname);
       else return $lastname;
   }
 
@@ -1504,9 +1545,25 @@ class BibEntry {
     return $this;
   }
 
-  function getText() {
+
   /** Returns the verbatim text of this bib entry. */
-    return $this->text;
+  function getText() {
+    if (c('BIBTEXBROWSER_BIBTEX_VIEW') == 'original') {
+        return $this->text;
+    }
+    if (c('BIBTEXBROWSER_BIBTEX_VIEW') == 'reconstructed') {
+        $result = '@'.$this->getType().'{'.$this->getKey().",\n";
+        foreach ($this->fields as $k=>$v) {
+          if ( !preg_match('/^('.c('BIBTEXBROWSER_BIBTEX_VIEW_FILTEREDOUT').')$/i', $k)
+             && !preg_match('/^(key|'.Q_INNER_AUTHOR.'|'.Q_INNER_TYPE.')$/i', $k) ) 
+             {
+              $result .= ' '.$k.' = {'.$v.'},'."\n";
+          }
+        }
+        $result .= "}\n";
+        return $result;
+    }
+    throw new Exception('incorrect value of BIBTEXBROWSER_BIBTEX_VIEW: '+BIBTEXBROWSER_BIBTEX_VIEW);    
   }
 
   /** Returns true if this bib entry contains the given phrase (PREG regexp)
@@ -1514,15 +1571,10 @@ class BibEntry {
    * Note that this method is NOT case sensitive */
   function hasPhrase($phrase, $field = null) {
 
-    // 2010-01-25
-    // bug found by jacob kellner
-    // we have to search in the formatted fileds and not in the raw entry
+    // we have to search in the formatted fields and not in the raw entry
     // i.e. all latex markups are not considered for searches
-    // i.e. added join(" ",$this->getFields())
-    // and html_entity_decode
     if (!$field) {
-      // warning html_entity_decode supports encoding since PHP5
-      return preg_match('/'.$phrase.'/i',$this->getConstants().' '.@html_entity_decode(join(" ",$this->getFields()),ENT_NOQUOTES,ENCODING));
+      return preg_match('/'.$phrase.'/i',$this->getConstants().' '.join(" ",$this->getFields()));
       //return stripos($this->getText(), $phrase) !== false;
     }
     if ($this->hasField($field) &&  (preg_match('/'.$phrase.'/i',$this->getField($field)) ) ) {
@@ -1671,7 +1723,7 @@ class BibEntry {
   function toEntryUnformatted() {
     $result = "";
     $result .= '<pre class="purebibtex">'; // pre is nice when it is embedded with no CSS available
-    $entry = htmlspecialchars($this->getFullText());
+    $entry = htmlspecialchars($this->getFullText(),ENT_NOQUOTES|ENT_XHTML, OUTPUT_ENCODING);
 
     // Fields that should be hyperlinks
     // the order matters
@@ -2745,7 +2797,7 @@ function query2title(&$query) {
 	}
 	$v = join($v, ',');
       }
-      $headers[$k] = __(ucwords($k)).': '.ucwords(htmlspecialchars($v));
+      $headers[$k] = __(ucwords($k)).': '.ucwords(htmlspecialchars($v,ENT_NOQUOTES|ENT_XHTML, OUTPUT_ENCODING));
   }
   return join(' &amp; ',$headers);
 }
@@ -3824,14 +3876,14 @@ function HTMLTemplate(&$content) {
 
 // when we load a page with AJAX
 // the HTTP header is taken into account, not the <meta http-equiv>
-header("Content-type: application/xhtml+xml; charset=utf-8");
-echo '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+header('Content-type: text/html; charset='.OUTPUT_ENCODING);
+echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'."\n";
 
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
-<meta http-equiv="Content-Type: application/xhtml+xml; charset=UTF-8"/>
+<meta http-equiv="Content-Type" content="text/html; charset=<?php echo OUTPUT_ENCODING ?>"/>
 <meta name="generator" content="bibtexbrowser v__GITHUB__" />
 <?php
 // if ($content->getRSS()!='') echo '<link rel="alternate" type="application/rss+xml" title="RSS" href="'.$content->getRSS().'&amp;rss" />';
@@ -3929,10 +3981,10 @@ class BibtexDisplay {
   function setWrapper($x) { $x->wrapper = 'NoWrapper'; }
 
   function display() {
-    header('Content-type: text/plain; charset='.ENCODING);
+    header('Content-type: text/plain; charset='.OUTPUT_ENCODING);
     echo '% generated by bibtexbrowser <http://www.monperrus.net/martin/bibtexbrowser/>'."\n";
     echo '% '.@$this->title."\n";
-    echo '% Encoding: '.ENCODING."\n";
+    echo '% Encoding: '.OUTPUT_ENCODING."\n";
     foreach($this->entries as $bibentry) { echo $bibentry->getText()."\n"; }
     exit;
   }
@@ -4051,14 +4103,11 @@ class RSSDisplay {
   function setTitle($title) { $this->title = $title; return $this; }
 
   /** tries to always output a valid XML/RSS string
-    * based on ENCODING, HTML tags, and the transformations
+    * based on OUTPUT_ENCODING, HTML tags, and the transformations
     * that happened in latex2html */
   function text2rss($desc) {
     // first strip HTML tags
     $desc = strip_tags($desc);
-
-    // then decode characters encoded by latex2html, preserve ENCODING
-    $desc = html_entity_decode($desc, ENT_COMPAT, ENCODING);
 
     // some entities may still be here, we remove them
     // we replace html entities e.g. &eacute; by nothing
@@ -4073,8 +4122,8 @@ class RSSDisplay {
 
     // final test with encoding:
     if (function_exists('mb_check_encoding')) { // (PHP 4 >= 4.4.3, PHP 5 >= 5.1.3)
-      if (!mb_check_encoding($desc,ENCODING)) {
-        return 'encoding error: please check the content of ENCODING';
+      if (!mb_check_encoding($desc,OUTPUT_ENCODING,BIBTEX_INPUT_ENCODING)) {
+        return 'encoding error: please check the content of OUTPUT_ENCODING';
       }
     }
 
@@ -4090,7 +4139,7 @@ class RSSDisplay {
 
   function display() {
     header('Content-type: application/rss+xml');
-    echo '<?xml version="1.0" encoding="'.ENCODING.'"?>';
+    echo '<?xml version="1.0" encoding="'.OUTPUT_ENCODING.'"?>';
 //
 
 ?>
@@ -4111,7 +4160,6 @@ class RSSDisplay {
          <description>
           <?php
             // we are in XML, so we cannot have HTML entitites
-            // however the encoding is specified in preamble
             echo $this->text2rss(bib2html($bibentry)."\n".$bibentry->getAbstract());
           ?>
           </description>
@@ -4288,7 +4336,7 @@ class Dispatcher {
   }
 
   function search() {
-    if (preg_match('/utf-?8/i',ENCODING)) {
+    if (preg_match('/utf-?8/i',OUTPUT_ENCODING)) {
       $_GET[Q_SEARCH] = urldecode($_GET[Q_SEARCH]);
     }
     $this->query[Q_SEARCH]=$_GET[Q_SEARCH];
@@ -4466,7 +4514,7 @@ class Dispatcher {
     <html  xmlns="http://www.w3.org/1999/xhtml">
     <head>
     <meta name="generator" content="bibtexbrowser v__GITHUB__" />
-    <meta http-equiv="Content-Type" content="text/html; charset=<?php echo ENCODING ?>"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=<?php echo OUTPUT_ENCODING ?>"/>
     <title>You are browsing <?php echo $_GET[Q_FILE]; ?> with bibtexbrowser</title>
     </head>
     <frameset cols="15%,*">
