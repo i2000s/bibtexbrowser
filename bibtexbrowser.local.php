@@ -8,10 +8,14 @@
     // define('BIBTEXBROWSER_USE_PROGRESSIVE_ENHANCEMENT',false);
     define('BIBLIOGRAPHYSECTIONS','my_sectioning');
     // define('BIBTEXBROWSER_CSS', '/bibtexbrowser.css');
-    // define('BIBTEXBROWSER_URL','');
+    define('BIBTEXBROWSER_URL',''); //Get the individual bib pages embedded.
     define('METADATA_EPRINTS',true);
     // define('BIBTEXBROWSER_EMBEDDED_WRAPPER', 'CustomWrapper');
     // define('BIBTEXBROWSER_DEFAULT_TEMPLATE','CustomHTMLTemplate');
+    // Define the hiden field from showing from the public bibtex source code.
+    define('BIBTEXBROWSER_BIBTEX_VIEW','reconstructed');
+    define('BIBTEXBROWSER_BIBTEX_VIEW_FILTEREDOUT','timestamp|owner|grant|grouptag|publicationdate|submissiondate'); 
+    
 
     function my_sectioning() {
         return
