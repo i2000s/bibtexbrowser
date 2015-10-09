@@ -14,7 +14,7 @@
     // define('BIBTEXBROWSER_DEFAULT_TEMPLATE','CustomHTMLTemplate');
     // Define the hiden field from showing from the public bibtex source code.
     define('BIBTEXBROWSER_BIBTEX_VIEW','reconstructed');
-    define('BIBTEXBROWSER_BIBTEX_VIEW_FILTEREDOUT','timestamp|owner|grant|grouptag|publicationdate|submissiondate'); 
+    define('BIBTEXBROWSER_BIBTEX_VIEW_FILTEREDOUT','timestamp|owner|grantnumber|grouptag|publicationdate|submissiondate'); 
     
 
     function my_sectioning() {
