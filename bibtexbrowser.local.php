@@ -23,22 +23,17 @@
                 // Articles
                 array(
                   'query' => array(Q_TYPE=>'article'),
-                  'title' => 'Refereed Journal Articles'
+                  'title' => 'Journal Articles'
                 ),
                 // Conference and Workshop papers
                 array(
                   'query' => array(Q_TYPE=>'inproceedings'),
-                  'title' => 'Refereed Conference and Workshop Papers'
+                  'title' => 'Conference and Workshop Papers'
                 ),
-                // Books
+                // Books / InBook / InCollection
                 array(
-                  'query' => array(Q_TYPE=>'book'),
-                  'title' => 'Books'
-                ),
-                // InBook / InCollection
-                array(
-                  'query' => array(Q_TYPE=>'inbook|incollection'),
-                  'title' => 'Edited Book Chapters'
+                  'query' => array(Q_TYPE=>'book|inbook|incollection'),
+                  'title' => 'Books and Book Chapters'
                 ),
                 // Theses
                 array(
