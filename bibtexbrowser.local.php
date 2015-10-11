@@ -213,7 +213,7 @@
                 <!-- <script type="text/javascript">
 
                     var _gaq = _gaq || [];
-                    _gaq.push(['_setAccount', 'UA-1844074-1']);
+                    _gaq.push(['_setAccount', 'UA-11111111111-1']); // set a Google Analysis account number here to track visiting. 
                     _gaq.push(['_trackPageview']);
 
                     (function() {
