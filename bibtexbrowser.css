@@ -27,7 +27,7 @@
 }
 
 .bibref {  padding:3px; padding-left:15px;  vertical-align:top;}
-.bibtitle { font-weight:bold; }
+/* .bibtitle { font-weight:bold; } */
 .bibbooktitle { font-style:italic; }
 /* .bibmenu {display:none} */ /* disables the [bibtex] and the like */
 /* .bibanchor {display:none} */ /* disables the index [1] or [Name2010], etc. depending on the value of the configuration value ABBRV_TYPE and BIBTEXBROWSER_LAYOUT
