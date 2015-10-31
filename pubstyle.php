@@ -83,10 +83,13 @@
          $entry[] = '<span itemprop="volume"><b>'.$bibentry->getField("volume").'</b></span>';
         }
 
-
-      if ($bibentry->hasField('pages')) $entry[] = '<span itemprop="pagenumbers">'.$bibentry->getField("pages").'</span>';
         
-      if ($bibentry->hasField(YEAR)) $entry[] = '<span itemprop="datePublished">('.$bibentry->getYear().')</span>';
+      if ($bibentry->hasField(YEAR)) {
+          if ($bibentry->hasField('pages')) { $entry[] = '<span itemprop="pagenumbers">'.$bibentry->getField("pages").'</span> <span itemprop="datePublished">('.$bibentry->getYear().')</span>';
+          else $entry[] = '<span itemprop="datePublished">('.$bibentry->getYear().')</span>';}
+      else {
+          if ($bibentry->hasField('pages')) $entry[] = '<span itemprop="pagenumbers">'.$bibentry->getField("pages").'</span>';}
+      }
 
 
       // DOI link.
