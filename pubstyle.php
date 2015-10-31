@@ -83,10 +83,9 @@
         }
 
 
-      if ($bibentry->hasField(YEAR)) $entry[] = '<span itemprop="datePublished">'.$bibentry->getYear().'</span>';
-
-
       if ($bibentry->hasField('pages')) $entry[] = '<span itemprop="pagenumbers">'.$bibentry->getField("pages").'</span>';
+        
+      if ($bibentry->hasField(YEAR)) $entry[] = '<span itemprop="datePublished">('.$bibentry->getYear().')</span>';
 
 
       // DOI link.
