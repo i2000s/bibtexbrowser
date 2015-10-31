@@ -8,7 +8,7 @@
 
       // title
       // usually in bold: .bibtitle { font-weight:bold; }
-      $title = '<span class="bibtitle"  itemprop="name">'.$title.'</span>';
+      $title = '<span class="bibtitle"  itemprop="name">&quot;'.$title.'&quot;</span>';
       if ($bibentry->hasField('url')) $title = ' <a'.(BIBTEXBROWSER_BIB_IN_NEW_WINDOW?' target="_blank" ':'').' href="'.$bibentry->getField('url').'">'.$title.'</a>';
 
 
@@ -77,9 +77,10 @@
 
       /* Volume and issue number (some journals use Issue while some use Number.) */
       if ($bibentry->hasField('volume')) { //$entry[] =  __('volume').' '.$bibentry->getField("volume");  
-         if ($bibentry->hasField('number')) {$entry[] = '<span itemprop="volumenumber">'.$bibentry->getField("volume").'</span>'.'(<span itemprop="issuenumber">'.$bibentry->getField("number").'</span>)';}
+         /* if ($bibentry->hasField('number')) {$entry[] = '<span itemprop="volumenumber">'.$bibentry->getField("volume").'</span>'.'(<span itemprop="issuenumber">'.$bibentry->getField("number").'</span>)';}
          elseif ($bibentry->hasField('issue')) {$entry[] = '<span itemprop="volumenumber">'.$bibentry->getField("volume").'</span>'.'(<span itemprop="issuenumber">'.$bibentry->getField("issue").'</span>)';}
-         else $entry[] =  __('volume').' '.$bibentry->getField("volume");  
+         else $entry[] =  __('volume').' '.$bibentry->getField("volume");  */
+         $entry[] = '<span itemprop="volume"><b>'.$bibentry->getField("volume").'</b></span>';
         }
 
 
