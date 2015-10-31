@@ -70,6 +70,8 @@
       if ($bibentry->hasField("publisher")) {
         $publisher = $bibentry->getField("publisher");
       }
+      /* Omit publisher for journal articles. */
+      if ($type=="article") { $publisher=''; }
 
       if ($publisher!='') $entry[] = '<span class="bibpublisher">'.$publisher.'</span>';
 
