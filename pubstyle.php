@@ -13,8 +13,44 @@
 
 
       // author
+      // All authors will be abbreviated for their first names, and the last author--if more than 1--will be after the key word "and". 
+      $author = '';
       if ($bibentry->hasField('author')) {
-        $coreInfo = ' <span class="bibauthor">'.$bibentry->getFormattedAuthorsImproved().'</span>, ' . $title ;}
+        $authors = $bibentry->getRawAuthors();
+		for ($i = 0; $i < count($authors); $i++) {
+			$a = $authors[$i];
+			// check author format; "Firstname Lastname" or "Lastname, Firstname"
+			if (strpos($a, ',') === false) {
+				$parts = explode(' ', $a);
+				$lastname = trim(array_pop($parts));
+				$firstnames = $parts;
+			} else {
+				$parts = explode(',', $a);
+				$lastname = trim($parts[0]);
+				$firstnames = explode(' ', trim($parts[1]));
+			}
+			$name = array();
+			foreach ($firstnames as $fn)
+				$name[] = substr(trim($fn), 0, 1) . '.';
+			// do not forget the author links if available
+			if (BIBTEXBROWSER_AUTHOR_LINKS=='homepage') {
+				$authors[$i] = $bibentry->addHomepageLink(implode(' ', $name) . ' ' . $lastname);
+			}
+			if (BIBTEXBROWSER_AUTHOR_LINKS=='resultpage') {
+				$authors[$i] = $bibentry->addAuthorPageLink(implode(' ', $name) . ' ' . $lastname);
+			}
+            if ($i < count($authors)-1) {
+                $author .= $authors[$i] . ', ';
+            }
+            else {
+                 if (count($authors)>1) {
+                    $author .= 'and ' . $authors[$i] . ', ';
+                 }
+                 else $author .= $authors[$i] . ', ';
+            }
+		}
+        // $coreInfo = ' <span class="bibauthor">'.$bibentry->getFormattedAuthorsImproved().'</span>, ' . $title ;}
+        $coreInfo = ' <span class="bibauthor">'.$author.'</span>' . $title ;}
       else $coreInfo = $title;
 
       // core info usually contains title + author
@@ -25,18 +61,51 @@
       if ($type=="inproceedings") {
           $booktitle = '<span itemprop="isPartOf">'.$bibentry->getField(BOOKTITLE).'</span>'; }
       if ($type=="incollection") {
-          $booktitle = __('Chapter in').' '.'<span itemprop="isPartOf">'.$bibentry->getField(BOOKTITLE).'</span>';}
+          $booktitle = __('in').' '.'<span itemprop="isPartOf">'.$bibentry->getField(BOOKTITLE).'</span>';}
       if ($type=="inbook") {
-          $booktitle = __('Chapter in').' '.$bibentry->getField('chapter');}
+          $booktitle = __('in').' '.$bibentry->getField('chapter');}
       if ($type=="article") {
           $booktitle = '<span itemprop="isPartOf">'.$bibentry->getField("journal").'</span>';}
 
-      //// we may add the editor names to the booktitle
+      //// we may add the editor names to the booktitle; all first names are abbreviated.
       $editor='';
       if ($bibentry->hasField(EDITOR)) {
-        $editor = $bibentry->getFormattedEditors();
+        $editors = $bibentry->getEditors();
+		for ($i = 0; $i < count($editors); $i++) {
+			$a = $editors[$i];
+			// check author format; "Firstname Lastname" or "Lastname, Firstname"
+			if (strpos($a, ',') === false) {
+				$parts = explode(' ', $a);
+				$lastname = trim(array_pop($parts));
+				$firstnames = $parts;
+			} else {
+				$parts = explode(',', $a);
+				$lastname = trim($parts[0]);
+				$firstnames = explode(' ', trim($parts[1]));
+			}
+			$name = array();
+			foreach ($firstnames as $fn)
+				$name[] = substr(trim($fn), 0, 1) . '.';
+			// do not forget the author links if available
+			if (BIBTEXBROWSER_AUTHOR_LINKS=='homepage') {
+				$editors[$i] = $bibentry->addHomepageLink(implode(' ', $name) . ' ' . $lastname);
+			}
+			if (BIBTEXBROWSER_AUTHOR_LINKS=='resultpage') {
+				$editors[$i] = $bibentry->addAuthorPageLink(implode(' ', $name) . ' ' . $lastname);
+			}
+            if ($i < count($editors)-1) {
+                $editor .= $editors[$i] . ', ';
+            }
+            else {
+                 if (count($editors)>1) {
+                    $editor .= 'and ' . $editors[$i] . ', ';
+                 }
+                 else $editor .= $editors[$i] . ', ';
+            }
+		}
+        // $editor = $bibentry->getFormattedEditors();
       }
-      if ($editor!='') $booktitle .=' ('.$editor.')';
+      if ($editor!='') $booktitle .=', edited by '.$editor;
       // end editor section
 
       // is the booktitle available
