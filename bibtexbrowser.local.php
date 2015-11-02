@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /* This is the Local customized code for bibtexbrowser.php utility. */
 /* Some good instructions and useful codes of modifying it can be found at http://blog.spd.gr/2012/04/bibtexbrowser-music-for-publication_09.html */
 /* Code has been used from https://github.com/g-oikonomou/bibtexbrowser/ */
@@ -14,8 +14,8 @@
     // define('BIBTEXBROWSER_DEFAULT_TEMPLATE','CustomHTMLTemplate');
     // Define the hiden field from showing from the public bibtex source code.
     define('BIBTEXBROWSER_BIBTEX_VIEW','reconstructed');
-    define('BIBTEXBROWSER_BIBTEX_VIEW_FILTEREDOUT','timestamp|owner|grantnumber|grouptag|publicationdate|submissiondate'); 
-    
+    define('BIBTEXBROWSER_BIBTEX_VIEW_FILTEREDOUT','timestamp|owner|grantnumber|grouptag|publicationdate|acceptancedate|submissiondate'); 
+    define('BIBTEXBROWSER_AUTHOR_LINKS','homepage'); // This supposes to link homepages to CQuIC authors if defined in the AuthorLinks.bib file.
 
     function my_sectioning() {
         return
