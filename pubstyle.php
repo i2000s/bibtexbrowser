@@ -176,7 +176,7 @@
           $result .=  " <span class=\"bibcomment\">(".$bibentry->getField("comment").")</span>";
       }
       if ($bibentry->hasField('note')) {
-          $result .=  " (".$bibentry->getField("note").")";
+          $result .=  " [".$bibentry->getField("note")."]";
       }
 
       // add the Coin URL

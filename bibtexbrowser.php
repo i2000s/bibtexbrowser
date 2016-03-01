@@ -149,7 +149,7 @@ if (defined('ENCODING')) {
 // warning, with reconstructed, the latex markup for accents/diacritics is lost
 @define('BIBTEXBROWSER_BIBTEX_VIEW','original');
 // a list of fields that will not be shown in the bibtex view if BIBTEXBROWSER_BIBTEX_VIEW=reconstructed
-@define('BIBTEXBROWSER_BIBTEX_VIEW_FILTEREDOUT','comment|note|file');
+@define('BIBTEXBROWSER_BIBTEX_VIEW_FILTEREDOUT','file');
 
 // should Latex macros be executed (e.g. \'e -> é
 @define('BIBTEXBROWSER_USE_LATEX2HTML',true);
