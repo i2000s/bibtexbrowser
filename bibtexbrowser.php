@@ -77,6 +77,9 @@ if (defined('ENCODING')) {
 @define('BIBTEXBROWSER_RENDER_MATH', true);
 @define('MATHJAX_URI', '//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML.js');
 
+// the default jquery URI
+@define('JQUERY_URI', '//code.jquery.com/jquery-1.5.1.min.js');
+
 // can we load bibtex files on external servers?
 @define('BIBTEXBROWSER_LOCAL_BIB_ONLY', true);
 
@@ -139,7 +142,7 @@ if (defined('ENCODING')) {
 @define('BIBTEXBROWSER_AUTHOR_LINKS','homepage');
 
 // BIBTEXBROWSER_LAYOUT defines the HTML rendering layout of the produced HTML
-// may be table/list/ordered_list/definition (for <table>, <ol>, <dl> resp.).
+// may be table/list/ordered_list/definition/none (for <table>, <ol>, <dl>, nothing resp.).
 // for list/ordered_list, the abbrevations are not taken into account (see ABBRV_TYPE)
 // for ordered_list, the index is given by HTML directly (in increasing order)
 @define('BIBTEXBROWSER_LAYOUT','table');
@@ -202,6 +205,7 @@ if (defined('ENCODING')) {
 @define('MULTIPLE_BIB_SEPARATOR',';');
 @define('METADATA_GS',true);
 @define('METADATA_DC',true);
+@define('METADATA_OPENGRAPH',true);
 @define('METADATA_EPRINTS',false);
 
 // define sort order for special values in 'year' field
@@ -999,6 +1003,7 @@ function latex2html($line) {
   $line = str_replace('\\l','&#322',$line);
   $line = str_replace('\\L','&#321',$line);
   $line = str_replace('\\k{a}','&#261',$line);
+  $line = str_replace('\\\'{c}','&#263',$line);
 
 // clean out extra tex curly brackets, usually used for preserving capitals
   $line = str_replace('}','', $line);
@@ -1268,6 +1273,13 @@ class BibEntry {
       return $lastname;
   }
 
+  /**
+    * Returns the first name of an author name.
+    */
+  function getFirstName($author){
+      list($firstname, $lastname) = splitFullName($author);
+      return $firstname;
+  }
 
   /** Has this entry the given field? */
   function hasField($name) {
@@ -1490,6 +1502,11 @@ class BibEntry {
     return $this->getField('year');
   }
 
+  /** returns the array of keywords */
+  function getKeywords() {
+    return preg_split('/[,;\\/]/', $this->getField("keywords"));
+  }
+  
   /** Returns the value of the given field? */
   function getField($name) {
     // 2010-06-07: profiling showed that this is very costly
@@ -1587,8 +1604,9 @@ class BibEntry {
 
 
   /** Outputs HTML line according to layout */
-  function toHTML() {
+  function toHTML($wrapped=false) {
       $result = '';
+      if ($wrapped) {
       switch(BIBTEXBROWSER_LAYOUT) { // open row
         case 'list':
           $result .= '<li class="bibline">';
@@ -1603,6 +1621,8 @@ class BibEntry {
           $result .= '<dl class="bibline"><dt class="bibref">';
           if (ABBRV_TYPE=='none') { die ('Cannot define an empty term!'); }
           break;
+        case 'none':
+          break;
       }
       $result .= $this->anchor();
       switch(BIBTEXBROWSER_LAYOUT) { // close bibref and open bibitem
@@ -1613,7 +1633,7 @@ class BibEntry {
           $result .= $this->getAbbrv().'</dt><dd class="bibitem">';
           break;
       }
-
+      }
 
       // may be overridden using configuration value of BIBLIOGRAPHYSTYLE
       $result .= bib2html($this);
@@ -1621,6 +1641,7 @@ class BibEntry {
       // may be overridden using configuration value of BIBTEXBROWSER_LINK_STYLE
       $result .= ' '.bib2links($this);
 
+      if ($wrapped) {
       switch(BIBTEXBROWSER_LAYOUT) { // close row
         case 'list':
           $result .= '</li>'."\n";
@@ -1634,6 +1655,9 @@ class BibEntry {
         case 'definition':
           $result .= '</dd></dl>'."\n";
           break;
+        case 'none':
+          break;
+      }
       }
       return $result;
   }
@@ -2209,15 +2233,15 @@ function JanosBibliographyStyle(&$bibentry) {
     $booktitle = $bibentry->getField("note");
   }
 
-  if ($type=="inproceedings") {
+  if ($type=="inproceedings" && $bibentry->hasField(BOOKTITLE)) {
       $booktitle = 'In '.$bibentry->getField(BOOKTITLE);
   }
 
-  if ($type=="incollection") {
+  if ($type=="incollection" && $bibentry->hasField(BOOKTITLE)) {
       $booktitle = 'Chapter in '.$bibentry->getField(BOOKTITLE);
   }
 
-  if ($type=="article") {
+  if ($type=="article" && $bibentry->hasField("journal")) {
       $booktitle = 'In '.$bibentry->getField("journal");
   }
 
@@ -2482,15 +2506,16 @@ class IndependentYearMenu  {
   }
 }
 
-/** Returns the powered by part. @nodoc */
-function poweredby() {
-  $poweredby = "\n".'<div style="text-align:right;font-size: xx-small;opacity: 0.6;" class="poweredby">';
-  $poweredby .= '<!-- If you like bibtexbrowser, thanks to keep the link :-) -->';
-  $poweredby .= 'Powered by <a href="http://www.monperrus.net/martin/bibtexbrowser/">bibtexbrowser</a><!--v__GITHUB__-->';
-  $poweredby .= '</div>'."\n";
-  return $poweredby;
+if (!function_exists('poweredby')) {
+  /** Returns the powered by part. @nodoc */
+  function poweredby() {
+    $poweredby = "\n".'<div style="text-align:right;font-size: xx-small;opacity: 0.6;" class="poweredby">';
+    $poweredby .= '<!-- If you like bibtexbrowser, thanks to keep the link :-) -->';
+    $poweredby .= 'Powered by <a href="http://www.monperrus.net/martin/bibtexbrowser/">bibtexbrowser</a><!--v__GITHUB__-->';
+    $poweredby .= '</div>'."\n";
+    return $poweredby;
   }
-
+}
 
 /** ^^adds a touch of AJAX in bibtexbrowser to display bibtex entries inline.
    It uses the HIJAX design pattern: the Javascript code fetches the normal bibtex HTML page
@@ -2501,7 +2526,7 @@ function poweredby() {
 function javascript() {
   // we use jquery with the official content delivery URLs
   // Microsoft and Google also provide jquery with their content delivery networks
-?><script type="text/javascript" src="http://code.jquery.com/jquery-1.5.1.min.js"></script>
+?><script type="text/javascript" src="<?php echo JQUERY_URI ?>"></script>
 <script type="text/javascript" ><!--
 // Javascript progressive enhancement for bibtexbrowser
 $('a.biburl').each(function() { // for each url "[bibtex]"
@@ -2517,10 +2542,10 @@ $('a.biburl').each(function() { // for each url "[bibtex]"
         var elem = $('<pre class="purebibtex"/>');
         elem.text($('.purebibtex', data).text()); // both text() are required for IE
         // we add a link so that users clearly see that even with AJAX
-        // there is still one URL per paper (which is important for crawlers and metadata)
+        // there is still one URL per paper.
         elem.append(
-           $('<div>%% Bibtex entry URL: <a href="'+bibtexEntryUrl+'">'+bibtexEntryUrl+'</a></div>')
-           ).appendTo(biburl.parent());
+          $('<div class="bibtex_entry_url">%% Bibtex entry URL: <a href="'+bibtexEntryUrl+'">'+bibtexEntryUrl+'</a></div>')
+          ).appendTo(biburl.parent());
       }, error: function() {window.location.href = biburl.attr('href');}});
     } else {biburl.nextAll('pre').toggle();}  // we toggle the view
   });
@@ -3002,7 +3027,7 @@ class SimpleDisplay  {
       // by default, index are in decreasing order
       // so that when you add a publicaton recent , the indices of preceding publications don't change
       $bib->setIndex($count-($i++));
-      echo $bib->toHTML();
+      echo $bib->toHTML(true);
 
       $pred = $bib;
     } // end foreach
@@ -3237,112 +3262,138 @@ class BibEntryDisplay {
     }
 
     if (METADATA_GS) {
-      // the description may mix with the Google Scholar tags
-      // we remove it
-      // $result[] = array('description',trim(strip_tags(str_replace('"','',bib2html($this->bib)))));
-      $result[] = array('citation_title',$this->bib->getTitle());
-      $authors = $this->bib->getArrayOfCommaSeparatedAuthors();
-      $result[] = array('citation_authors',implode("; ",$authors));
-      foreach($authors as $author) {
-        $result[] = array('citation_author',$author);
-      }
-
-      // the date
-      $result[] = array('citation_publication_date',$this->bib->getYear());
-      $result[] = array('citation_date',$this->bib->getYear());
-        $result[] = array('citation_year',$this->bib->getYear());
-
-      if ($this->bib->hasField("publisher")) {
-        $result[] = array('citation_publisher',$this->bib->getPublisher());
-      }
-
-      // BOOKTITLE: JOURNAL NAME OR PROCEEDINGS
-      if ($this->bib->getType()=="article") { // journal article
-        $result[] = array('citation_journal_title',$this->bib->getField("journal"));
-        $result[] = array('citation_volume',$this->bib->getField("volume"));
-        if ($this->bib->hasField("number")) {
-          // in bibtex, the issue number is usually in a field "number"
-          $result[] = array('citation_issue',$this->bib->getField("number"));
-        }
-        if ($this->bib->hasField("issue")) {
-          $result[] = array('citation_issue',$this->bib->getField("issue"));
-        }
-        if ($this->bib->hasField("issn")) {
-          $result[] = array('citation_issue',$this->bib->getField("issn"));
-        }
-      }
-
-      if ($this->bib->getType()=="inproceedings" || $this->bib->getType()=="conference") {
-         $result[] = array('citation_conference_title',$this->bib->getField(BOOKTITLE));
-         $result[] = array('citation_conference',$this->bib->getField(BOOKTITLE));
-      }
-
-      if ($this->bib->getType()=="phdthesis"
-           || $this->bib->getType()=="mastersthesis"
-           || $this->bib->getType()=="bachelorsthesis"
-         )
-      {
-         $result[] = array('citation_dissertation_institution',$this->bib->getField('school'));
-      }
-
-      if ($this->bib->getType()=="techreport"
-           && $this->bib->hasField("number")
-         )
-      {
-         $result[] = array('citation_technical_report_number',$this->bib->getField('number'));
-      }
-
-      if ($this->bib->getType()=="techreport"
-           && $this->bib->hasField("institution")
-         )
-      {
-         $result[] = array('citation_technical_report_institution',$this->bib->getField('institution'));
-      }
-
-      // generic
-      if ($this->bib->hasField("doi")) {
-        $result[] = array('citation_doi',$this->bib->getField("doi"));
-      }
-
-      if ($this->bib->hasField('url')) {
-        $result[] = array('citation_pdf_url',$this->bib->getField('url'));
-      }
-
-      if ($this->bib->hasField("pages")) {
-        $pages = $this->bib->getPages();
-        if (count($pages)==2) {
-          $result[] = array('citation_firstpage',$pages[0]);
-          $result[] = array('citation_lastpage',$pages[1]);
-        }
-      }
-
+      $result = $this->metadata_google_scholar($result);
     } // end Google Scholar
 
-    // we don't introduce yet another kind of bibliographic metadata
-    // the core bibtex metadata will simply be available as json
-    // now adding the pure bibtex with no translation
-    //foreach ($this->bib->getFields() as $k => $v) {
-    //  if (!preg_match("/^_/",$k)) {
-    //    $result[] = array("bibtex:".$k,$v);
-    //  }
-    //}
-
-
     // a fallback to essential dublin core
+    if (METADATA_DC) {
+      $result = $this->metadata_dublin_core($result);
+    }
+    
+    if (METADATA_OPENGRAPH) {
+      $result = $this->metadata_opengraph($result);
+    }
+    
+    if (METADATA_EPRINTS) {
+      $result = $this->metadata_eprints($result);
+    }
+
+    return $result;    
+  } // end function metadata
+  
+  function metadata_opengraph($result) {
+    // Facebook metadata
+    // see http://ogp.me
+    // https://developers.facebook.com/tools/debug/og/object/
+    $result[] = array('og:type','article');  
+    $result[] = array('og:title',$this->bib->getTitle());
+    foreach($this->bib->getRawAuthors() as $author) {
+    // opengraph requires a URL as author value
+    $result[] = array('og:author',"http://".@$_SERVER['HTTP_HOST'].$_SERVER['SCRIPT_NAME'].'?bib='.urlencode($this->bib->filename).'&amp;author='.urlencode($author));
+    }
+    $result[] = array('og:published_time',$this->bib->getYear());
+    return $result;
+  } // end function metadata_opengraph
+  
+  function metadata_dublin_core($result) {
     // Dublin Core should not be used for bibliographic metadata
     // according to several sources
     //  * Google Scholar: "Use Dublin Core tags (e.g., DC.title) as a last resort - they work poorly for journal papers"
     //  * http://reprog.wordpress.com/2010/09/03/bibliographic-data-part-2-dublin-cores-dirty-little-secret/
     // however it seems that Google Scholar needs at least DC.Title to trigger referencing
     // reference documentation: http://dublincore.org/documents/dc-citation-guidelines/
-    if (METADATA_DC) {
     $result[] = array('DC.Title',$this->bib->getTitle());
     foreach($this->bib->getArrayOfCommaSeparatedAuthors() as $author) {
       $result[] = array('DC.Creator',$author);
     }
     $result[] = array('DC.Issued',$this->bib->getYear());
+    return $result;
+  }
+  
+  function metadata_google_scholar($result) {
+    // the description may mix with the Google Scholar tags
+    // we remove it
+    // $result[] = array('description',trim(strip_tags(str_replace('"','',bib2html($this->bib)))));
+    $result[] = array('citation_title',$this->bib->getTitle());
+    $authors = $this->bib->getArrayOfCommaSeparatedAuthors();
+    $result[] = array('citation_authors',implode("; ",$authors));
+    foreach($authors as $author) {
+    $result[] = array('citation_author',$author);
     }
 
+    // the date
+    $result[] = array('citation_publication_date',$this->bib->getYear());
+    $result[] = array('citation_date',$this->bib->getYear());
+    $result[] = array('citation_year',$this->bib->getYear());
+
+    if ($this->bib->hasField("publisher")) {
+    $result[] = array('citation_publisher',$this->bib->getPublisher());
+    }
+
+    // BOOKTITLE: JOURNAL NAME OR PROCEEDINGS
+    if ($this->bib->getType()=="article") { // journal article
+    $result[] = array('citation_journal_title',$this->bib->getField("journal"));
+    $result[] = array('citation_volume',$this->bib->getField("volume"));
+    if ($this->bib->hasField("number")) {
+        // in bibtex, the issue number is usually in a field "number"
+        $result[] = array('citation_issue',$this->bib->getField("number"));
+    }
+    if ($this->bib->hasField("issue")) {
+        $result[] = array('citation_issue',$this->bib->getField("issue"));
+    }
+    if ($this->bib->hasField("issn")) {
+        $result[] = array('citation_issue',$this->bib->getField("issn"));
+    }
+    }
+
+    if ($this->bib->getType()=="inproceedings" || $this->bib->getType()=="conference") {
+        $result[] = array('citation_conference_title',$this->bib->getField(BOOKTITLE));
+        $result[] = array('citation_conference',$this->bib->getField(BOOKTITLE));
+    }
+
+    if ($this->bib->getType()=="phdthesis"
+        || $this->bib->getType()=="mastersthesis"
+        || $this->bib->getType()=="bachelorsthesis"
+        )
+    {
+        $result[] = array('citation_dissertation_institution',$this->bib->getField('school'));
+    }
+
+    if ($this->bib->getType()=="techreport"
+        && $this->bib->hasField("number")
+        )
+    {
+        $result[] = array('citation_technical_report_number',$this->bib->getField('number'));
+    }
+
+    if ($this->bib->getType()=="techreport"
+        && $this->bib->hasField("institution")
+        )
+    {
+        $result[] = array('citation_technical_report_institution',$this->bib->getField('institution'));
+    }
+
+    // generic
+    if ($this->bib->hasField("doi")) {
+    $result[] = array('citation_doi',$this->bib->getField("doi"));
+    }
+
+    if ($this->bib->hasField('url')) {
+    $result[] = array('citation_pdf_url',$this->bib->getField('url'));
+    }
+
+    if ($this->bib->hasField("pages")) {
+    $pages = $this->bib->getPages();
+    if (count($pages)==2) {
+        $result[] = array('citation_firstpage',$pages[0]);
+        $result[] = array('citation_lastpage',$pages[1]);
+    }
+    }
+      
+    return $result;
+  }
+  
+  function metadata_eprints($result) {
     // --------------------------------- BEGIN METADATA EPRINTS
     // and now adding eprints metadata
     // why adding eprints metadata?
@@ -3352,7 +3403,6 @@ class BibEntryDisplay {
     // reference documentation: the eprints source code (./perl_lib/EPrints/Plugin/Export/Simple.pm)
     // examples: conference paper: http://tubiblio.ulb.tu-darmstadt.de/44344/
     //           journal paper: http://tubiblio.ulb.tu-darmstadt.de/44344/
-    if (METADATA_EPRINTS) {
     $result[] = array('eprints.title',$this->bib->getTitle());
     $authors = $this->bib->getArrayOfCommaSeparatedAuthors();
     foreach($authors as $author) {
@@ -3405,13 +3455,10 @@ class BibEntryDisplay {
     if ($this->bib->hasField('url')) {
       $result[] = array('eprints.official_url',$this->bib->getField('url'));
     }
-    }
     // --------------------------------- END METADATA EPRINTS
-
     return $result;
-
-  }
-}
+  } // end method metatada_eprints;
+} // end class BibEntryDisplay
 
 
 // ----------------------------------------------------------------------
@@ -3575,7 +3622,7 @@ class BibDataBase {
     $result = array();
     foreach ($this->bibdb as $bib) {
       if (!$bib->hasField("keywords")) continue;
-      $tags =preg_split('/[,;\\/]/', $bib->getField("keywords"));
+      $tags = $bib->getKeywords();
       foreach($tags as $a){
         $ta = trim($a);
         $result[$ta] = $ta;
@@ -3896,7 +3943,7 @@ if (method_exists($content, 'metadata')) {
 }
 foreach($metatags as $item) {
   list($name,$value) = $item;
-  echo '<meta name="'.$name.'" content="'.$value.'"/>'."\n";
+  echo '<meta name="'.$name.'" property="'.$name.'" content="'.$value.'"/>'."\n";
 } // end foreach
 
 
@@ -4050,7 +4097,7 @@ class PagedDisplay {
       $index = ($this->page-1)*bibtexbrowser_configuration('PAGE_SIZE') + $i;
       if (isset($this->entries[$index])) {
         $bib = $this->entries[$index];
-        echo $bib->toHTML();
+        echo $bib->toHTML(true);
 
       } else {
         //break;
@@ -4119,9 +4166,9 @@ class RSSDisplay {
     // be careful of <
     $desc = str_replace('<','&#60;',$desc);
 
-    // final test with encoding:
+    // final test with encoding:    
     if (function_exists('mb_check_encoding')) { // (PHP 4 >= 4.4.3, PHP 5 >= 5.1.3)
-      if (!mb_check_encoding($desc,OUTPUT_ENCODING,BIBTEX_INPUT_ENCODING)) {
+      if (!mb_check_encoding($desc,OUTPUT_ENCODING)) {
         return 'encoding error: please check the content of OUTPUT_ENCODING';
       }
     }
