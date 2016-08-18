@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/monperrus/bibtexbrowser.svg?branch=master)](https://travis-ci.org/monperrus/bibtexbrowser)
+[![Build Status](https://travis-ci.org/i2000s/bibtexbrowser.svg?branch=master)](https://travis-ci.org/i2000s/bibtexbrowser)
 
 This is the github repository of bibtexbrowser.
 
