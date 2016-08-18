@@ -232,7 +232,7 @@ if (defined('ENCODING')) {
 // this is usually resolved to bibtexbrowser.php
 // but can be overridden in bibtexbrowser.local.php
 // for instance with @define('BIBTEXBROWSER_URL',''); // links to the current page with ?
-@define('BIBTEXBROWSER_URL',basename($_SERVER['bibtexbrowser'],'.php')); // basename(__FILE__));
+@define('BIBTEXBROWSER_URL',basename(__FILE__)); // basename($_SERVER['bibtexbrowser'],'.php'));
 
 // *************** END CONFIGURATION
 
