@@ -45,6 +45,8 @@ function c($key) { // shortcut
 // I recommend to put your changes in bibtexbrowser.local.php
 // it will help you to upgrade the script with a new version
 // the changes that require existing bibtexbrowser symbols should be in bibtexbrowser.after.php (included at the end of this file)
+// per bibtex file configuration
+@include(@$_GET[Q_FILE].'.local.php');
 @include(preg_replace('/\.php$/','.local.php',__FILE__));
 
 // the encoding of your bibtex file
@@ -60,6 +62,7 @@ if (defined('ENCODING')) {
 // number of bib items per page
 // we use the same parameter 'num' as Google
 @define('PAGE_SIZE',isset($_GET['num'])?(preg_match('/^\d+$/',$_GET['num'])?$_GET['num']:10000):14);
+
 // bibtexbrowser uses a small piece of Javascript to improve the user experience
 // see http://en.wikipedia.org/wiki/Progressive_enhancement
 // if you don't like it, you can be disable it by adding in bibtexbrowser.local.php
@@ -164,9 +167,17 @@ if (defined('ENCODING')) {
 
 @define('BIBTEXBROWSER_DEBUG',false);
 
-@define('USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT',false);// do have authors in a comma separated form?
-@define('USE_INITIALS_FOR_NAMES',false); // use only initials for all first names
+// how to print authors names?
+// default => as in the bibtex file
+// USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT = true => "Meyer, Herbert"
+// USE_INITIALS_FOR_NAMES = true => "Meyer H"
+// USE_FIRST_THEN_LAST => Herbert Meyer
+@define('USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT',false);// output authors in a comma separated form, e.g. "Meyer, H"?
+@define('USE_INITIALS_FOR_NAMES',false); // use only initials for all first names?
+@define('USE_FIRST_THEN_LAST',false); // use only initials for all first names?
 @define('FORCE_NAMELIST_SEPARATOR', ''); // if non-empty, use this to separate multiple names regardless of USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT
+@define('LAST_AUTHOR_SEPARATOR',' and ');
+
 @define('TYPES_SIZE',10); // number of entry types per table
 @define('YEAR_SIZE',20); // number of years per table
 @define('AUTHORS_SIZE',30); // number of authors per table
@@ -502,6 +513,7 @@ class StateBasedBibtexParser {
     $entrytype='';
     $entrykey='';
     $entryvalue='';
+    $fieldvaluepart='';
     $finalkey='';
     $entrysource='';
 
@@ -543,9 +555,11 @@ class StateBasedBibtexParser {
     else if ($state==GETKEY) {
       // now we get the value
       if ($s=='=') {
-      $state = GETVALUE;
-      $finalkey=$entrykey;
-      $entrykey='';}
+        $state = GETVALUE;
+        $fieldvaluepart='';
+        $finalkey=$entrykey;
+        $entrykey='';
+      }
       // oups we only have the key :-) anyway
       else if ($s=='}') {
       $state = NOTHING;$isinentry = false;$delegate->endEntry($entrysource);
@@ -569,24 +583,26 @@ class StateBasedBibtexParser {
         // the value is delimited by curly brackets
         else if ($s=='{') {
         $state = GETVALUEDELIMITEDBYCURLYBRACKETS;
-        }
+	}
         // the end of the key and no value found: it is the bibtex key e.g. \cite{Descartes1637}
         else if ($s==',') {
         $state = GETKEY;
-        $delegate->setEntryField(trim($finalkey),$entryvalue);
+        $delegate->setEntryField($finalkey,$entryvalue);
         $entryvalue=''; // resetting the value buffer
         }
         // this is the end of the value AND of the entry
         else if ($s=='}') {
         $state = NOTHING;
-        $delegate->setEntryField(trim($finalkey),$entryvalue);
+        $delegate->setEntryField($finalkey,$entryvalue);
         $isinentry = false;$delegate->endEntry($entrysource);
         $entryvalue=''; // resetting the value buffer
         }
         else if ($s==' ' || $s=="\t"  || $s=="\n" || $s=="\r" ) {
           // blank characters are not taken into account when values are not in quotes or curly brackets
         }
-        else { $entryvalue=$entryvalue.$s;}
+        else {
+          $entryvalue=$entryvalue.$s;
+        }
       }
 
 
@@ -597,10 +613,19 @@ class StateBasedBibtexParser {
       $state = GETVALUEDELIMITEDBYCURLYBRACKETS_ESCAPED;
       $entryvalue=$entryvalue.$s;}
       else if ($s=='{') {
-      $state = GETVALUEDELIMITEDBYCURLYBRACKETS_1NESTEDLEVEL;$entryvalue=$entryvalue.$s;}
-      else if ($s=='}') {
-      $state = GETVALUE;}
-      else { $entryvalue=$entryvalue.$s;}
+        $state = GETVALUEDELIMITEDBYCURLYBRACKETS_1NESTEDLEVEL;
+        $entryvalue=$entryvalue.$s;
+        $delegate->entryValuePart($finalkey,$fieldvaluepart,'CURLYTOP');
+        $fieldvaluepart='';
+      }
+      else if ($s=='}') { // end entry
+        $state = GETVALUE;
+        $delegate->entryValuePart($finalkey,$fieldvaluepart,'CURLYTOP');
+      }
+      else {
+        $entryvalue=$entryvalue.$s;
+        $fieldvaluepart=$fieldvaluepart.$s;
+      }
     }
       // handle anti-slashed brackets
       else if ($state==GETVALUEDELIMITEDBYCURLYBRACKETS_ESCAPED) {
@@ -615,8 +640,15 @@ class StateBasedBibtexParser {
       else if ($s=='{') {
       $state = GETVALUEDELIMITEDBYCURLYBRACKETS_2NESTEDLEVEL;$entryvalue=$entryvalue.$s;}
       else if ($s=='}') {
-      $state = GETVALUEDELIMITEDBYCURLYBRACKETS;$entryvalue=$entryvalue.$s;}
-      else { $entryvalue=$entryvalue.$s;}
+        $state = GETVALUEDELIMITEDBYCURLYBRACKETS;
+        $delegate->entryValuePart($finalkey,$fieldvaluepart,'CURLYONE');
+        $fieldvaluepart='';
+        $entryvalue=$entryvalue.$s;
+      }
+      else {
+        $entryvalue=$entryvalue.$s;
+        $fieldvaluepart=$fieldvaluepart.$s;
+      }
     }
       // handle anti-slashed brackets
       else if ($state==GETVALUEDELIMITEDBYCURLYBRACKETS_1NESTEDLEVEL_ESCAPED) {
@@ -663,7 +695,7 @@ class StateBasedBibtexParser {
       $state = GETVALUEDELIMITEDBYQUOTES_ESCAPED;
       $entryvalue=$entryvalue.$s;}
       else if ($s=='"') {
-      $state = GETVALUE;
+        $state = GETVALUE;
       }
       else {  $entryvalue=$entryvalue.$s;}
     }
@@ -725,6 +757,32 @@ class StringEntry {
   }
 } // end class StringEntry
 
+
+/** a default empty implementation of a delegate for StateBasedBibtexParser */
+class ParserDelegate {
+
+  function beginFile() {}
+
+  function endFile() {}
+
+  function setEntryField($finalkey,$entryvalue) {}
+
+  function setEntryType($entrytype) {}
+
+  function setEntryKey($entrykey) {}
+
+  function beginEntry() {}
+
+  function endEntry($entrysource) {}
+
+  /** called for each sub parts of type {part} of a field value
+   * for now, only CURLYTOP and CURLYONE events
+  */
+  function entryValuePart($key, $value, $type) {}
+
+} // end class ParserDelegate
+
+
 /** builds arrays of BibEntry objects from a bibtex file.
 usage:
 <pre>
@@ -737,7 +795,7 @@ usage:
 notes:
  method build can be used several times, bibtex entries are accumulated in the builder
 */
-class BibDBBuilder {
+class BibDBBuilder extends ParserDelegate {
 
   /** A hashtable from keys to bib entries (BibEntry). */
   var $builtdb  = array();
@@ -796,7 +854,8 @@ class BibDBBuilder {
     //print_r($this->builtdb);
   }
 
-  function setEntryField($finalkey,$entryvalue) {
+  function setEntryField($fieldkey,$entryvalue) {
+    $fieldkey=trim($fieldkey);
     // support for Bibtex concatenation
     // see http://newton.ex.ac.uk/tex/pack/bibtex/btxdoc/node3.html
     // (?<! is a negative look-behind assertion, see http://www.php.net/manual/en/regexp.reference.assertions.php
@@ -819,7 +878,7 @@ class BibDBBuilder {
     }
     $entryvalue=implode('',$entryvalue_array);
 
-    $this->currentEntry->setField($finalkey,$entryvalue);
+    $this->currentEntry->setField($fieldkey,$entryvalue);
   }
 
   function setEntryType($entrytype) {
@@ -852,7 +911,14 @@ class BibDBBuilder {
     // we format the author names in a special field
     // to enable search
     if ($this->currentEntry->hasField('author')) {
-      $this->currentEntry->setField(Q_INNER_AUTHOR,$this->currentEntry->getFormattedAuthorsImproved());
+      $this->currentEntry->setField(Q_INNER_AUTHOR,$this->currentEntry->getFormattedAuthorsString());
+
+      foreach($this->currentEntry->split_authors() as $author) {
+        $homepage_key = $this->currentEntry->getHomePageKey($author);
+        if (isset($this->stringdb[$homepage_key])) {
+            $this->currentEntry->homepages[$homepage_key] = $this->stringdb[$homepage_key]->value;
+        }
+      }
     }
 
     // ignoring jabref comments
@@ -863,7 +929,7 @@ class BibDBBuilder {
     // we add it to the string database
     else if ($this->currentEntry->getType()=='string') {
       foreach($this->currentEntry->fields as $k => $v) {
-        $k!=Q_INNER_TYPE and $this->stringdb[$k]=new StringEntry($k,$v,$this->filename);
+        $k!=Q_INNER_TYPE and $this->stringdb[$k] = new StringEntry($k,$v,$this->filename);
       }
     }
 
@@ -872,6 +938,7 @@ class BibDBBuilder {
       $this->builtdb[$this->currentEntry->getKey()] = $this->currentEntry;
     }
   }
+
 } // end class BibDBBuilder
 
 
@@ -904,11 +971,7 @@ function char2html($line,$latexmodifier,$char,$entitiyfragment) {
 }
 
 function char2html_case_sensitive($line,$latexmodifier,$char,$entitiyfragment) {
-// old version
-//   $line = str_replace('\\'.$latexmodifier.$char,'&'.$char.''.$entitiyfragment.';', $line);
-//   $line = str_replace('\\'.$latexmodifier.' '.$char,'&'.$char.''.$entitiyfragment.';', $line);
-//   $line = str_replace('\\'.$latexmodifier.'{'.$char.'}','&'.$char.''.$entitiyfragment.';', $line);
-  $line = preg_replace('/\\\\'.preg_quote($latexmodifier,'/').' ?\\{?'.$char.'\\}?/','&'.$char.''.$entitiyfragment.';', $line);
+  $line = preg_replace('/\\{?\\\\'.preg_quote($latexmodifier,'/').' ?\\{?'.$char.'\\}?/','&'.$char.''.$entitiyfragment.';', $line);
   return $line;
 }
 
@@ -1005,10 +1068,6 @@ function latex2html($line) {
   $line = str_replace('\\k{a}','&#261',$line);
   $line = str_replace('\\\'{c}','&#263',$line);
 
-// clean out extra tex curly brackets, usually used for preserving capitals
-  $line = str_replace('}','', $line);
-  $line = str_replace('{','', $line);
-
   // we restore the math env
   for($i = 0; $i < count($maths); $i++) {
     $line = str_replace('__MATH'.$i.'__', $maths[$i], $line);
@@ -1049,16 +1108,19 @@ notes:
 class BibEntry {
 
   /** The fields (fieldName -> value) of this bib entry. */
-  var $fields;
+  var $fields = array();
 
   /** The constants @STRINGS referred to by this entry */
-  var $constants;
+  var $constants = array();
+
+  /** The homepages of authors if any */
+  var $homepages = array();
 
   /** The crossref entry if there is one */
   var $crossref;
 
   /** The verbatim copy (i.e., whole text) of this bib entry. */
-  var $text;
+  var $text = '';
 
   /** A timestamp to trace when entries have been created */
   var $timestamp;
@@ -1075,6 +1137,7 @@ class BibEntry {
   /** The location in the original bibtex file (set by addEntry) */
   var $order = -1;
 
+
   /** returns a debug string representation */
   function __toString() {
     return $this->getType()." ".$this->getKey();
@@ -1083,9 +1146,6 @@ class BibEntry {
   /** Creates an empty new bib entry. Each bib entry is assigned a unique
    * identification number. */
   function BibEntry() {
-    $this->fields = array();
-    $this->constants = array();
-    $this->text ='';
   }
 
   /** Sets the name of the file containing this entry */
@@ -1126,25 +1186,38 @@ class BibEntry {
     if ($name!='url' && $name!='comment') {
      // 1. trim space
       $value = xtrim($value);
-      
+
       if (c('BIBTEXBROWSER_USE_LATEX2HTML')) {
         // 2. transform Latex markup to HTML entities (easier than a one to one mapping to each character)
         // HTML entity is an intermediate format
         $value = latex2html($value);
-        
+
         // 3. transform to the target output encoding
         $value = html_entity_decode($value, ENT_QUOTES|ENT_XHTML, OUTPUT_ENCODING);
       }
-      
+
       // 4. transform existing encoded character in the new format
       if (function_exists('mb_convert_encoding') && OUTPUT_ENCODING != BIBTEX_INPUT_ENCODING) {
-        $vaue = mb_convert_encoding($value, OUTPUT_ENCODING, BIBTEX_INPUT_ENCODING);
+        $value = mb_convert_encoding($value, OUTPUT_ENCODING, BIBTEX_INPUT_ENCODING);
       }
+
+
+      // clean extra tex curly brackets, usually used for preserving capitals
+      $value = $this->clean_top_curly($value);
 
     } else {
       //echo "xx".$value."xx\n";
     }
+
+
+
     $this->fields[$name] = $value;
+  }
+
+  function clean_top_curly($value) {
+    $value = preg_replace('/^\{/','', $value);
+    $value = preg_replace('/\}$/','', $value);
+    return $value;
   }
 
   /** Sets a type of this bib entry. */
@@ -1201,19 +1274,27 @@ class BibEntry {
     return $link;
   }
 
-  /** returns a "[pdf]" link if relevant. modified to exploit the new method, while keeping backward compatibility */
-  function getUrlLink($iconurl = NULL, $label = 'pdf') {
-    if ($this->hasField('url')) {
-      return $this->getLink('url', $iconurl, $label);
-    }
+  /** same as `getPdfLink`, kept for backward compatibility */
+  function getUrlLink($iconurl, $label) {
+    return $this->getPdfLink($iconurl, $label);
+  }
+
+  /** returns a "[pdf]" link for the entry, if possible.
+      Tries to get the target URL from the 'pdf' field first, then from 'url' or 'file'.
+    */
+  function getPdfLink($iconurl = NULL, $label = 'pdf') {
     if ($this->hasField('pdf')) {
       return $this->getLink('pdf', $iconurl, $label);
+    }
+    if ($this->hasField('url')) {
+      return $this->getLink('url', $iconurl, $label);
     }
     // Adding link to PDF file exported by Zotero
     // ref: https://github.com/monperrus/bibtexbrowser/pull/14
     if ($this->hasField('file')) {
       return $this->getLink('file', $iconurl, $label);
     }
+    return "";
   }
 
 
@@ -1235,7 +1316,7 @@ class BibEntry {
     }
     return '';
   }
-  
+
   /** arXiv are a special kind of links, where the url depends on the arXiv number. */
   function getArxivLink($iconurl=NULL) {
     $str = $this->getIconOrTxt('arxiv',$iconurl);
@@ -1290,7 +1371,7 @@ class BibEntry {
    * return a string 'Unknown'. */
   function getAuthor() {
     if (array_key_exists(AUTHOR, $this->fields)) {
-      return $this->fields[AUTHOR];
+      return getFormattedAuthorsString();
     }
     // 2010-03-02: commented the following, it results in misleading author lists
     // issue found by Alan P. Sexton
@@ -1334,26 +1415,44 @@ class BibEntry {
     return '';
   }
 
-  /** Returns the authors of this entry as an array */
+  /** Returns the authors of this entry as an array (split by " and ") */
   function getRawAuthors() {
-    $authors = array();
-    foreach (preg_split('/ and /i', $this->getAuthor()) as $author) {
-      $authors[]=$author;
+    return $this->split_authors();
+  }
+
+  function split_authors() {
+    $array = preg_split('/ and /i', $this->getField(Q_AUTHOR));
+    $res = array();
+    // we merge the remaining ones
+    for ($i=0; $i < count($array)-1; $i++) {
+      if (strpos( latex2html($array[$i]), '{') !== FALSE && strpos(latex2html($array[$i+1]),'}') !== FALSE) {
+        $res[] = $this->clean_top_curly($array[$i]." and ".$array[$i+1]);
+        $i = $i + 1;
+      } else {
+        $res[] = $array[$i];
+      }
     }
-    return $authors;
+    if (strpos($array[count($array)-1], '}')===FALSE) {
+        $res[] = $array[count($array)-1];
+    }
+    return $res;
   }
 
   /**
-  * Returns the formated author name w.r.t to the user preference encoded in USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT
-  */
+   * Returns the formated author name w.r.t to the user preference
+   * encoded in USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT and USE_INITIALS_FOR_NAMES
+   */
   function formatAuthor($author){
-    if (USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT) {
+    if (bibtexbrowser_configuration('USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT')) {
       return $this->formatAuthorCommaSeparated($author);
-    } else if (USE_INITIALS_FOR_NAMES) {
+    } else if (bibtexbrowser_configuration('USE_INITIALS_FOR_NAMES')) {
       return $this->formatAuthorInitials($author);
-    }	
+    } else if (bibtexbrowser_configuration('USE_FIRST_THEN_LAST')) {
+      return $this->formatAuthorCanonical($author);
+    }
 
-    else return $this->formatAuthorCanonical($author);
+    // otherwise to formatting
+    else return $author;
   }
 
   /**
@@ -1385,24 +1484,24 @@ class BibEntry {
   }
 
 
-  /** Returns the authors as an array of strings (one string per author) */
-  function getFormattedAuthors() {
-    $authors = array();
+  /** @deprecated */
+  function formattedAuthors() {  return $this->getFormattedAuthorsString(); }
+  /** @deprecated */
+  function getFormattedAuthors() {  return $this->getFormattedAuthorsArray(); }
+  /** @deprecated */
+  function getFormattedAuthorsImproved() {  return $this->getFormattedAuthorsString(); }
+
+
+  /** Returns the authors as an array of strings (one string per author).
+   */
+  function getFormattedAuthorsArray() {
+    $array_authors = array();
+
+
+    // first we use formatAuthor
     foreach ($this->getRawAuthors() as $author) {
-      $authors[]='<span itemprop="author"  itemtype="http://schema.org/Person">'.$this->formatAuthor($author).'</span>';
+      $array_authors[]=$this->formatAuthor($author);
     }
-    return $authors;
-  }
-
-  /** @deprecated
-  *   @see getFormattedAuthorsImproved()
-  */
-  function formattedAuthors() {  return $this->getFormattedAuthorsImproved(); }
-
-  /** Adds to getFormattedAuthors() the home page links and returns a string (not an array). Is configured with BIBTEXBROWSER_AUTHOR_LINKS and USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT.
-  */
-  function getFormattedAuthorsImproved() {
-    $array_authors = $this->getFormattedAuthors();
 
     if (BIBTEXBROWSER_AUTHOR_LINKS=='homepage') {
       foreach ($array_authors as $k => $author) {
@@ -1416,13 +1515,31 @@ class BibEntry {
       }
     }
 
-    if (USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT) {$sep = '; ';} else {$sep = ', ';}
-    if (FORCE_NAMELIST_SEPARATOR !== '') {$sep = FORCE_NAMELIST_SEPARATOR;}
-
-    return implode($sep ,$array_authors);
+    return $array_authors;
   }
 
-    /** adds a link to the author page */
+  /** Adds to getFormattedAuthors() the home page links and returns a string (not an array). Is configured with BIBTEXBROWSER_AUTHOR_LINKS and USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT.
+  */
+  function getFormattedAuthorsString() {
+    return $this->implodeAuthors($this->getFormattedAuthorsArray());
+  }
+
+  function implodeAuthors($authors) {
+    if (count($authors)==0) return '';
+    if (count($authors)==1) return $authors[0];
+
+    $result = '';
+
+    if (bibtexbrowser_configuration('USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT')) {$sep = '; ';} else {$sep = ', ';}
+    if (FORCE_NAMELIST_SEPARATOR !== '') {$sep = FORCE_NAMELIST_SEPARATOR;}
+    for ($i=0;$i<count($authors)-2;$i++) {
+      $result .= $authors[$i].$sep;
+    }
+    $result .= $authors[count($authors)-2].bibtexbrowser_configuration('LAST_AUTHOR_SEPARATOR'). $authors[count($authors)-1];
+    return $result;
+  }
+
+  /** adds a link to the author page */
   function addAuthorPageLink($author) {
     $link = makeHref(array(Q_AUTHOR => $author));
     return "<a {$link}>$author</a>";
@@ -1457,6 +1574,11 @@ class BibEntry {
     return $this->formatAuthor($authors[0]) . $etal;
   }
 
+  function getHomePageKey($author) {
+
+    return strtolower('hp_'.preg_replace('/ /', '', $this->formatAuthorCanonical(latex2html($author))));
+  }
+
   /** add the link to the homepage if it is defined in a string
    *  e.g. @string{hp_MartinMonperrus="http://www.monperrus.net/martin"}
    *  The string is a concatenation of firstname, lastname, prefixed by hp_
@@ -1465,11 +1587,11 @@ class BibEntry {
    */
   function addHomepageLink($author) {
     // hp as home page
-    // accents are handled normally
+    // accents are normally handled
     // e.g. @STRING{hp_Jean-MarcJézéquel="http://www.irisa.fr/prive/jezequel/"}
-    $homepage = strtolower('hp_'.preg_replace('/ /', '', $author));
-    if (isset($_GET[Q_DB]->stringdb[$homepage]))
-      $author='<a href="'.$_GET[Q_DB]->stringdb[$homepage]->value.'">'.$author.'</a>';
+    $homepage = $this->getHomePageKey($author);
+    if (isset($this->homepages[$homepage]))
+      $author='<a href="'.$this->homepages[$homepage].'">'.$author.'</a>';
     return $author;
   }
 
@@ -1487,9 +1609,9 @@ class BibEntry {
   function getFormattedEditors() {
     $editors = array();
     foreach ($this->getEditors() as $editor) {
-      $editors[]=$this->addHomepageLink($this->formatAuthor($editor));
+      $editors[]=$this->formatAuthor($editor);
     }
-    if (USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT) {$sep = '; ';} else {$sep = ', ';}
+    if (bibtexbrowser_configuration('USE_COMMA_AS_NAME_SEPARATOR_IN_OUTPUT')) {$sep = '; ';} else {$sep = ', ';}
     if (FORCE_NAMELIST_SEPARATOR !== '') {$sep = FORCE_NAMELIST_SEPARATOR;}
     return implode($sep, $editors).', '.(count($editors)>1?'eds.':'ed.');
   }
@@ -1506,7 +1628,7 @@ class BibEntry {
   function getKeywords() {
     return preg_split('/[,;\\/]/', $this->getField("keywords"));
   }
-  
+
   /** Returns the value of the given field? */
   function getField($name) {
     // 2010-06-07: profiling showed that this is very costly
@@ -1572,7 +1694,7 @@ class BibEntry {
         $result = '@'.$this->getType().'{'.$this->getKey().",\n";
         foreach ($this->fields as $k=>$v) {
           if ( !preg_match('/^('.c('BIBTEXBROWSER_BIBTEX_VIEW_FILTEREDOUT').')$/i', $k)
-             && !preg_match('/^(key|'.Q_INNER_AUTHOR.'|'.Q_INNER_TYPE.')$/i', $k) ) 
+             && !preg_match('/^(key|'.Q_INNER_AUTHOR.'|'.Q_INNER_TYPE.')$/i', $k) )
              {
               $result .= ' '.$k.' = {'.$v.'},'."\n";
           }
@@ -1580,7 +1702,7 @@ class BibEntry {
         $result .= "}\n";
         return $result;
     }
-    throw new Exception('incorrect value of BIBTEXBROWSER_BIBTEX_VIEW: '+BIBTEXBROWSER_BIBTEX_VIEW);    
+    throw new Exception('incorrect value of BIBTEXBROWSER_BIBTEX_VIEW: '+BIBTEXBROWSER_BIBTEX_VIEW);
   }
 
   /** Returns true if this bib entry contains the given phrase (PREG regexp)
@@ -1717,7 +1839,7 @@ class BibEntry {
 
     $url_parts[]='rft.date='.s3988($this->getYear());
 
-    foreach ($this->getFormattedAuthors() as $au) $url_parts[]='rft.au='.s3988($au);
+    foreach ($this->getFormattedAuthorsArray() as $au) $url_parts[]='rft.au='.s3988($au);
 
 
     return '<span class="Z3988" title="'.implode('&amp;',$url_parts).'"></span>';
@@ -1795,6 +1917,12 @@ class BibEntry {
 
 } // enc class BibEntry
 
+class RawBibEntry extends BibEntry {
+  function setField($name, $value) {
+    $this->fields[$name]=$value;
+  }
+}
+
 /** returns an HTML tag depending on BIBTEXBROWSER_LAYOUT e.g. <TABLE> */
 function get_HTML_tag_for_layout() {
   switch(BIBTEXBROWSER_LAYOUT) { /* switch for different layouts */
@@ -1828,7 +1956,7 @@ function bib2links_default(&$bibentry) {
   }
 
   if (BIBTEXBROWSER_PDF_LINKS) {
-    $link = $bibentry->getUrlLink();
+    $link = $bibentry->getPdfLink();
     if ($link != '') { $links[] = $link; };
   }
 
@@ -1836,7 +1964,7 @@ function bib2links_default(&$bibentry) {
     $link = $bibentry->getDoiLink();
     if ($link != '') { $links[] = $link; };
   }
-  
+
   if (BIBTEXBROWSER_ARXIV_LINKS) {
     $link = $bibentry->getArxivLink();
     if ($link != '') { $links[] = $link; };
@@ -1864,7 +1992,7 @@ function print_footer_layout() {
 
 /** this function encapsulates the user-defined name for bib to HTML*/
 function bib2html(&$bibentry) {
-  $function = BIBLIOGRAPHYSTYLE;
+  $function = bibtexbrowser_configuration('BIBLIOGRAPHYSTYLE');
   return $function($bibentry);
 }
 
@@ -2106,10 +2234,20 @@ function DefaultBibliographyStyle(&$bibentry) {
   if ($bibentry->hasField('url')) $title = ' <a'.(BIBTEXBROWSER_BIB_IN_NEW_WINDOW?' target="_blank" ':'').' href="'.$bibentry->getField('url').'">'.$title.'</a>';
 
 
-  // author
+  $coreInfo = $title;
+
+  // adding author info
   if ($bibentry->hasField('author')) {
-    $coreInfo = ' <span class="bibauthor">'.$bibentry->getFormattedAuthorsImproved().'</span>, ' . $title ;}
-  else $coreInfo = $title;
+    $coreInfo .= ' (<span class="bibauthor">';
+
+    $authors = array();
+    foreach ($bibentry->getFormattedAuthorsArray() as $a) {
+       $authors[]='<span itemprop="author" itemtype="http://schema.org/Person">'.$a.'</span>';
+    }
+    $coreInfo .= $bibentry->implodeAuthors($authors);
+
+    $coreInfo .= '</span>)';
+  }
 
   // core info usually contains title + author
   $entry[] = $coreInfo;
@@ -2168,19 +2306,19 @@ function DefaultBibliographyStyle(&$bibentry) {
   if ($publisher!='') $entry[] = '<span class="bibpublisher">'.$publisher.'</span>';
 
   /* Volume and issue number (some journals use Issue while some use Number.) */
-  if ($bibentry->hasField('volume')) { //$entry[] =  __('volume').' '.$bibentry->getField("volume");  
+  if ($bibentry->hasField('volume')) { //$entry[] =  __('volume').' '.$bibentry->getField("volume");
      if ($bibentry->hasField('number')) {$entry[] = '<span itemprop="volumenumber">'.$bibentry->getField("volume").'</span>'.'(<span itemprop="issuenumber">'.$bibentry->getField("number").'</span>)';}
      elseif ($bibentry->hasField('issue')) {$entry[] = '<span itemprop="volumenumber">'.$bibentry->getField("volume").'</span>'.'(<span itemprop="issuenumber">'.$bibentry->getField("issue").'</span>)';}
-     else $entry[] =  __('volume').' '.$bibentry->getField("volume");  
+     else $entry[] =  __('volume').' '.$bibentry->getField("volume");
     }
 
 
   if ($bibentry->hasField(YEAR)) $entry[] = '<span itemprop="datePublished">'.$bibentry->getYear().'</span>';
 
-  
+
   if ($bibentry->hasField('pages')) $entry[] = '<span itemprop="pagenumbers">'.$bibentry->getField("pages").'</span>';
 
-  
+
   // DOI link.
   // if ($bibentry->hasField('doi')) {$entry[] = '<span itemprop="doilink"><a href=http://doi.org/"'.$bibentry->getField('doi').'">DOI:'.$bibentry->getField("doi").'</a></span>';}
 
@@ -2217,7 +2355,7 @@ function JanosBibliographyStyle(&$bibentry) {
 
   // author
   if ($bibentry->hasField('author')) {
-    $entry[] = $bibentry->formattedAuthors();
+    $entry[] = $bibentry->getFormattedAuthorsString();
   }
 
   // title
@@ -2327,7 +2465,7 @@ function VancouverBibliographyStyle(&$bibentry) {
 
   // author
   if ($bibentry->hasField('author')) {
-    $entry[] = $bibentry->formattedAuthors().'. ';
+    $entry[] = $bibentry->getFormattedAuthorsString().'. ';
   }
 
   // Ensure punctuation mark at title's end
@@ -2374,7 +2512,7 @@ function VancouverBibliographyStyle(&$bibentry) {
       $publisher = 'Master\'s thesis, '.$bibentry->getField(SCHOOL);
   } else if ($type=="techreport") {
       $publisher = 'Technical report, '.$bibentry->getField("institution");
-  } 
+  }
   if ($bibentry->hasField("publisher")) {
     $publisher = $bibentry->getField("publisher");
   }
@@ -2452,7 +2590,7 @@ Based on createQueryString.
 @nodoc
  */
 function makeHref($query = NULL) {
-  return 'href="?'. createQueryString($query) .'"';
+  return 'href="'.bibtexbrowser_configuration('BIBTEXBROWSER_URL').'?'. createQueryString($query) .'"';
 }
 
 
@@ -3000,7 +3138,7 @@ class SimpleDisplay  {
     }
 
     if (BIBTEXBROWSER_DEBUG) {
-      echo 'Style: '.BIBLIOGRAPHYSTYLE.'<br/>';
+      echo 'Style: '.bibtexbrowser_configuration('BIBLIOGRAPHYSTYLE').'<br/>';
       echo 'Order: '.ORDER_FUNCTION.'<br/>';
       echo 'Abbrv: '.ABBRV_TYPE.'<br/>';
       echo 'Options: '.@implode(',',$this->options).'<br/>';
@@ -3205,7 +3343,7 @@ class BibEntryDisplay {
 
   /** 2011/10/02: new display, inspired from Tom Zimmermann's home page */
   function displayOnSteroids() {
-      $subtitle = '<div class="bibentry-by">by '.$this->bib->getFormattedAuthorsImproved().'</div>';
+      $subtitle = '<div class="bibentry-by">by '.$this->bib->getFormattedAuthorsString().'</div>';
 
       $abstract = '';
       if ($this->bib->hasField('abstract')) {
@@ -3269,23 +3407,23 @@ class BibEntryDisplay {
     if (METADATA_DC) {
       $result = $this->metadata_dublin_core($result);
     }
-    
+
     if (METADATA_OPENGRAPH) {
       $result = $this->metadata_opengraph($result);
     }
-    
+
     if (METADATA_EPRINTS) {
       $result = $this->metadata_eprints($result);
     }
 
-    return $result;    
+    return $result;
   } // end function metadata
-  
+
   function metadata_opengraph($result) {
     // Facebook metadata
     // see http://ogp.me
     // https://developers.facebook.com/tools/debug/og/object/
-    $result[] = array('og:type','article');  
+    $result[] = array('og:type','article');
     $result[] = array('og:title',$this->bib->getTitle());
     foreach($this->bib->getRawAuthors() as $author) {
     // opengraph requires a URL as author value
@@ -3294,7 +3432,7 @@ class BibEntryDisplay {
     $result[] = array('og:published_time',$this->bib->getYear());
     return $result;
   } // end function metadata_opengraph
-  
+
   function metadata_dublin_core($result) {
     // Dublin Core should not be used for bibliographic metadata
     // according to several sources
@@ -3309,7 +3447,7 @@ class BibEntryDisplay {
     $result[] = array('DC.Issued',$this->bib->getYear());
     return $result;
   }
-  
+
   function metadata_google_scholar($result) {
     // the description may mix with the Google Scholar tags
     // we remove it
@@ -3389,10 +3527,10 @@ class BibEntryDisplay {
         $result[] = array('citation_lastpage',$pages[1]);
     }
     }
-      
+
     return $result;
   }
-  
+
   function metadata_eprints($result) {
     // --------------------------------- BEGIN METADATA EPRINTS
     // and now adding eprints metadata
@@ -3674,7 +3812,7 @@ class BibDataBase {
   /** Adds a new bib entry to the database. */
   function addEntry($entry) {
     if (!$entry->hasField('key')) {
-      die('error: a bibliographic entry must have a key');
+      die('error: a bibliographic entry must have a key '.$entry->getText());
     }
     // we keep its insertion order
     $entry->order = count($this->bibdb);
@@ -3771,6 +3909,13 @@ class BibDataBase {
       }
       return $result;
   }
+
+  function toBibtex() {
+    $s = "";
+    foreach($this->bibdb as $bibentry) { $s.=$bibentry->getText()."\n"; }
+    return $s;
+  }
+
 } // end class
 
 /** returns the default CSS of bibtexbrowser */
@@ -4167,7 +4312,7 @@ class RSSDisplay {
     // be careful of <
     $desc = str_replace('<','&#60;',$desc);
 
-    // final test with encoding:    
+    // final test with encoding:
     if (function_exists('mb_check_encoding')) { // (PHP 4 >= 4.4.3, PHP 5 >= 5.1.3)
       if (!mb_check_encoding($desc,OUTPUT_ENCODING)) {
         return 'encoding error: please check the content of OUTPUT_ENCODING';
@@ -4575,6 +4720,25 @@ class Dispatcher {
 }
 
 } // end class Dispatcher
+
+function bibtexbrowser_cli($arguments) {
+  $db = new BibDataBase();
+  $db->load($arguments[1]);
+  $current_entry=NULL;
+  $current_field=NULL;
+  for ($i=2;$i<count($arguments); $i++) {
+    $arg=$arguments[$i];
+    if ($arg=='--id') {
+      $current_entry = $db->getEntryByKey($arguments[$i+1]);
+      $i=$i+1;
+    }
+    if (preg_match('/^--set-(.*)/',$arg,$matches)) {
+      $current_entry->setField($matches[1],$arguments[$i+1]);
+      $i=$i+1;
+    }
+  }
+  file_put_contents($arguments[1],$db->toBibtex());
+}
 
 } // end if (!defined('BIBTEXBROWSER'))
 
