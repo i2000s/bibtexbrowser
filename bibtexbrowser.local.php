@@ -20,7 +20,7 @@
     define('BIBTEXBROWSER_AUTHOR_LINKS','homepage'); // This supposes to link homepages to CQuIC authors if defined in the AuthorLinks.bib file.
     // Show page numbering.
     bibtexbrowser_configure('BIBTEXBROWSER_DEFAULT_DISPLAY','PagedDisplay');
-    bibtexbrowser_configure('PAGE_SIZE','25');
+    bibtexbrowser_configure('PAGE_SIZE','29');
     // Change the default frame.
     define('BIBTEXBROWSER_DEFAULT_FRAME','all');
 
