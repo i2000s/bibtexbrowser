@@ -5,7 +5,7 @@
 .rheader {  color: #003366;
   font-size: large;
   font-weight: bold; }
-  
+
 /* Second level headers */
 .sheader {  font-weight: bold;
   /* font-size: large; */
@@ -16,7 +16,7 @@
   margin-top: 7px;
   /* border-bottom: #ff6633 2px solid; */
 }
-  
+
 /* 3rd level headers, equivalent H3  */
 .theader {
   /* background-color: #0DE3FF; */
@@ -26,11 +26,11 @@
   font-weight: bold;
 }
 
-.bibref {  padding:3px; padding-left:15px;  vertical-align:top;}
+.bibref {  padding:-3px; padding-left:10px;  vertical-align:top;}
 /* .bibtitle { font-weight:bold; } */
 .bibbooktitle { font-style:italic; }
 /* .bibmenu {display:none} */ /* disables the [bibtex] and the like */
-/* .bibanchor {display:none} */ /* disables the index [1] or [Name2010], etc. depending on the value of the configuration value ABBRV_TYPE and BIBTEXBROWSER_LAYOUT
+/* .bibanchor {display:none}  /* disables the index [1] or [Name2010], etc. depending on the value of the configuration value ABBRV_TYPE and BIBTEXBROWSER_LAYOUT
 /* .theader {display:none} */
 /* .sheader {display:none} */  /* disables the year header e.g., 2001 */
 

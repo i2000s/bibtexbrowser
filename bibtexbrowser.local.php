@@ -7,20 +7,22 @@
     define('BIBLIOGRAPHYSTYLE','PhysicsBibliographyStyle');
     // define('BIBTEXBROWSER_USE_PROGRESSIVE_ENHANCEMENT',false);
     define('BIBLIOGRAPHYSECTIONS','my_sectioning');
-    // define('BIBTEXBROWSER_CSS', '/bibtexbrowser.css');
+    define('BIBTEXBROWSER_CSS', '/bibtexbrowser.css');
     define('BIBTEXBROWSER_URL',''); //Get the individual bib pages embedded.
     define('METADATA_EPRINTS',true);
+    define('ABBRV_TYPE','year');
+    define('BIBTEXBROWSER_LAYOUT','table');
     // define('BIBTEXBROWSER_EMBEDDED_WRAPPER', 'CustomWrapper');
     // define('BIBTEXBROWSER_DEFAULT_TEMPLATE','CustomHTMLTemplate');
     // Define the hiden field from showing from the public bibtex source code.
     define('BIBTEXBROWSER_BIBTEX_VIEW','reconstructed');
-    define('BIBTEXBROWSER_BIBTEX_VIEW_FILTEREDOUT','timestamp|owner|grantnumber|grouptag|publicationdate|acceptancedate|submissiondate'); 
+    define('BIBTEXBROWSER_BIBTEX_VIEW_FILTEREDOUT','timestamp|owner|grantnumber|grouptag|publicationdate|acceptancedate|submissiondate');
     define('BIBTEXBROWSER_AUTHOR_LINKS','homepage'); // This supposes to link homepages to CQuIC authors if defined in the AuthorLinks.bib file.
     // Show page numbering.
     bibtexbrowser_configure('BIBTEXBROWSER_DEFAULT_DISPLAY','PagedDisplay');
-    bibtexbrowser_configure('PAGE_SIZE','30');
+    bibtexbrowser_configure('PAGE_SIZE','25');
     // Change the default frame.
-    // define('BIBTEXBROWSER_DEFAULT_FRAME','all');
+    define('BIBTEXBROWSER_DEFAULT_FRAME','all');
 
     function my_sectioning() {
         return
@@ -132,7 +134,7 @@
         if($pos !== false) {
             return $pre . 'The original publication is available at <a href="http://www.springerlink.com">http://www.springerlink.com</a>' . $post;
         }
-        
+
         /* Check if publisher contains 'APS' */
         $pos = stripos($publisher, 'APS');
         if($pos !== false) {
@@ -149,8 +151,8 @@
     Class CustomWrapper {
         function CustomWrapper(&$content, $metatags=array()) {
             //header ("Content-Type:application/xhtml+xml; charset=utf-8");
-            echo '<?xml version="1.0" encoding="UTF-8"?>'."\n"; 
-?> 
+            echo '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+?>
             <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
             <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
                 <head>
@@ -169,7 +171,7 @@
                     </title>
                     <!--<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />-->
                     <meta name="keywords" content="CQuIC, quantum information, quantum computing, quantum control, quantum measurement, quantum metrology, quantum optics" />
-                    
+
                      <?php
                     /* Add content meta-data, if any */
                     foreach($metatags as $item) {
@@ -189,7 +191,7 @@
 
                         <b>Note</b>: <em>This material is presented to ensure timely dissemination of scholarly and technical work. Copyright and all rights therein are retained by authors or by other copyright holders. All persons copying this information are expected to adhere to the terms and constraints invoked by each author's copyright. In most cases, these works may not be reposted without the explicit permission of the copyright holder. Free preprint copies of CQuIC publications may be downloaded from <a href="http://arxiv.org/" target="_blank">arXiv.org</a>.</em>
                         <br/><br/>
-                        
+
                     </div>
                     <?php }
                 ?>
@@ -218,7 +220,7 @@
                 <!-- <script type="text/javascript">
 
                     var _gaq = _gaq || [];
-                    _gaq.push(['_setAccount', 'UA-11111111111-1']); // set a Google Analysis account number here to track visiting. 
+                    _gaq.push(['_setAccount', 'UA-11111111111-1']); // set a Google Analysis account number here to track visiting.
                     _gaq.push(['_trackPageview']);
 
                     (function() {
@@ -232,15 +234,15 @@
             </html>
             <?php
         }
-    } 
-?> 
+    }
+?>
 
 <?php
 //   function CustomHTMLTemplate(&$content) {
         // require( 'wp-blog-header.php');
 //        include ( TEMPLATEPATH . '/content.php');
-//        echo '<div id="bodyText">';      
-//          $content->display();      
+//        echo '<div id="bodyText">';
+//          $content->display();
 //        echo '</div>';
 //    } -->
 ?>

@@ -1,6 +1,6 @@
 <?php
     $_GET['library']=1;
-    $_GET['bib']='CQuICmembers.bib';
+    $_GET['bib']='ICIQmembers.bib';
     $_GET['all']=1;
 
     /* arguments below are those we want to ignore */
@@ -10,12 +10,12 @@
     include('bibtexbrowser.php');
 
     setDB();
-?> 
+?>
 
-<!-- <div id="bodyText"> 
+<!-- <div id="bodyText">
 <?php
-// echo '<?xml version="1.0" encoding="UTF-8"?>'."\n"; 
-?> 
+// echo '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+?>
 //    include('wp-content/themes/vantage-cquic/content.php');
 /*    <form action="?Academic" method="get">
     <div class="sortbox toolbox">
