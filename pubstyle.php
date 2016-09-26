@@ -38,15 +38,22 @@
     			}
           //list($firstnames, $lastname) = splitFullName($a);
     			$name = array();
-    			foreach ($firstnames as $fn)
-    				$name[] = substr(trim($fn), 0, 1) . '.';
-    			// do not forget the author links if available
+          // Abbreviate the first name part.
+    			foreach ($firstnames as $fn){
+            if (strpos($fn, '-') === false) {
+    				  $name[] = preg_replace("/(\p{Lu})\w*[- ]*/Su","$1.", $fn);//substr(trim($fn), 0, 1) . '.';//This will handle most of case.
+            } else {
+              $name[] = preg_replace("/(\p{Lu})\w*([-\s])(\p{Lu})\w*/Su","$1.$2$3.", $fn);//This takes care of names separated with "-".
+            }//Notice that if the first name has two capital letters next to each other without space, this program will only abbreviate the first letter.
+          }
+          // do not forget the author links if available
     			if (BIBTEXBROWSER_AUTHOR_LINKS=='homepage') {
     				$authors[$i] = $bibentry->addHomepageLink(implode(' ', $name) . ' ' . $lastname);
     			}
     			if (BIBTEXBROWSER_AUTHOR_LINKS=='resultpage') {
     				$authors[$i] = $bibentry->addAuthorPageLink(implode(' ', $name) . ' ' . $lastname);
     			}
+          // Connect the last author with 'and' or deal with single author case.
           if ($i < count($authors)-1) {
               $author .= $authors[$i] . ', ';
           }
@@ -78,38 +85,44 @@
       $editor='';
       if ($bibentry->hasField(EDITOR)) {
         $editors = $bibentry->getEditors();
-		for ($i = 0; $i < count($editors); $i++) {
-			$a = $editors[$i];
-			// check author format; "Firstname Lastname" or "Lastname, Firstname"
-			if (strpos($a, ',') === false) {
-				$parts = explode(' ', $a);
-				$lastname = trim(array_pop($parts));
-				$firstnames = $parts;
-			} else {
-				$parts = explode(',', $a);
-				$lastname = trim($parts[0]);
-				$firstnames = explode(' ', trim($parts[1]));
-			}
-			$name = array();
-			foreach ($firstnames as $fn)
-				$name[] = substr(trim($fn), 0, 1) . '.';
-			// do not forget the author links if available
-			if (BIBTEXBROWSER_AUTHOR_LINKS=='homepage') {
-				$editors[$i] = $bibentry->addHomepageLink(implode(' ', $name) . ' ' . $lastname);
-			}
-			if (BIBTEXBROWSER_AUTHOR_LINKS=='resultpage') {
-				$editors[$i] = $bibentry->addAuthorPageLink(implode(' ', $name) . ' ' . $lastname);
-			}
-            if ($i < count($editors)-1) {
-                $editor .= $editors[$i] . ', ';
-            }
-            else {
-                 if (count($editors)>1) {
-                    $editor .= 'and ' . $editors[$i] . ', ';
-                 }
-                 else $editor .= $editors[$i] . ', ';
-            }
-		}
+  		for ($i = 0; $i < count($editors); $i++) {
+  			$a = $editors[$i];
+  			// check author format; "Firstname Lastname" or "Lastname, Firstname"
+  			if (strpos($a, ',') === false) {
+  				$parts = explode(' ', $a);
+  				$lastname = trim(array_pop($parts));
+  				$firstnames = $parts;
+  			} else {
+  				$parts = explode(',', $a);
+  				$lastname = trim($parts[0]);
+  				$firstnames = explode(' ', trim($parts[1]));
+  			}
+  			$name = array();
+  			foreach ($firstnames as $fn){
+          if (strpos($fn, '-') === false) {
+            $name[] = preg_replace("/(\p{Lu})\w*[- ]*/Su","$1.", $fn);//substr(trim($fn), 0, 1) . '.';//This will handle most of case.
+          } else {
+            $name[] = preg_replace("/(\p{Lu})\w*([-\s])(\p{Lu})\w*/Su","$1.$2$3.", $fn);//This takes care of names separated with "-".
+          }//Notice that if the first name has two capital letters next to each other without space, this program will only abbreviate the first letter.
+        }
+  			// do not forget the author links if available
+  			if (BIBTEXBROWSER_AUTHOR_LINKS=='homepage') {
+  				$editors[$i] = $bibentry->addHomepageLink(implode(' ', $name) . ' ' . $lastname);
+  			}
+  			if (BIBTEXBROWSER_AUTHOR_LINKS=='resultpage') {
+  				$editors[$i] = $bibentry->addAuthorPageLink(implode(' ', $name) . ' ' . $lastname);
+  			}
+        // Connection to the last editor or handle the single editor case.
+        if ($i < count($editors)-1) {
+            $editor .= $editors[$i] . ', ';
+        }
+        else {
+             if (count($editors)>1) {
+                $editor .= 'and ' . $editors[$i] . ', ';
+             }
+             else $editor .= $editors[$i] . ', ';
+        }
+  		}
         // $editor = $bibentry->getFormattedEditors();
       }
       if ($editor!='') $booktitle .=', edited by '.$editor;
