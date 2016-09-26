@@ -1,5 +1,12 @@
 <?php
     function PhysicsBibliographyStyle(&$bibentry) {
+      // This function provides a bibtex style close to the APS journal style yet
+      // with customized links and fields added at the end of the bibtex entries.
+      // Written by Xiaodong Qi (qxd @ unm.edu) 2015-2016.
+      // This program is free software; you can redistribute it and/or
+      // modify it under the terms of the GNU General Public License as
+      // published by the Free Software Foundation; either version 2 of the
+      // License, or (at your option) any later version.
       $title = $bibentry->getTitle();
       $type = $bibentry->getType();
 
@@ -17,39 +24,39 @@
       $author = '';
       if ($bibentry->hasField('author')) {
         $authors = $bibentry->getRawAuthors();
-		for ($i = 0; $i < count($authors); $i++) {
-			$a = $authors[$i];
-			// check author format; "Firstname Lastname" or "Lastname, Firstname"
-			if (strpos($a, ',') === false) {
-				$parts = explode(' ', $a);
-				$lastname = trim(array_pop($parts));
-				$firstnames = $parts;
-			} else {
-				$parts = explode(',', $a);
-				$lastname = trim($parts[0]);
-				$firstnames = explode(' ', trim($parts[1]));
-			}
-			$name = array();
-			foreach ($firstnames as $fn)
-				$name[] = substr(trim($fn), 0, 1) . '.';
-			// do not forget the author links if available
-			if (BIBTEXBROWSER_AUTHOR_LINKS=='homepage') {
-				$authors[$i] = $bibentry->addHomepageLink(implode(' ', $name) . ' ' . $lastname);
-			}
-			if (BIBTEXBROWSER_AUTHOR_LINKS=='resultpage') {
-				$authors[$i] = $bibentry->addAuthorPageLink(implode(' ', $name) . ' ' . $lastname);
-			}
-            if ($i < count($authors)-1) {
-                $author .= $authors[$i] . ', ';
-            }
-            else {
-                 if (count($authors)>1) {
-                    $author .= 'and ' . $authors[$i] . ', ';
-                 }
-                 else $author .= $authors[$i] . ', ';
-            }
-		}
-        // $coreInfo = ' <span class="bibauthor">'.$bibentry->getFormattedAuthorsImproved().'</span>, ' . $title ;}
+    		for ($i = 0; $i < count($authors); $i++) {
+    			$a = ($bibentry->formatAuthor($authors[$i]));//$authors[$i];
+    			// check author format; "Firstname Lastname" or "Lastname, Firstname"
+    			if (strpos($a, ',') === false) {
+    				$parts = explode(' ', $a);
+    				$lastname = trim(array_pop($parts));
+    				$firstnames = $parts;
+    			} else {
+    				$parts = explode(',', $a);
+    				$lastname = trim($parts[0]);
+    				$firstnames = explode(' ', trim($parts[1]));
+    			}
+          //list($firstnames, $lastname) = splitFullName($a);
+    			$name = array();
+    			foreach ($firstnames as $fn)
+    				$name[] = substr(trim($fn), 0, 1) . '.';
+    			// do not forget the author links if available
+    			if (BIBTEXBROWSER_AUTHOR_LINKS=='homepage') {
+    				$authors[$i] = $bibentry->addHomepageLink(implode(' ', $name) . ' ' . $lastname);
+    			}
+    			if (BIBTEXBROWSER_AUTHOR_LINKS=='resultpage') {
+    				$authors[$i] = $bibentry->addAuthorPageLink(implode(' ', $name) . ' ' . $lastname);
+    			}
+          if ($i < count($authors)-1) {
+              $author .= $authors[$i] . ', ';
+          }
+          else {
+               if (count($authors)>1) {
+                  $author .= 'and ' . $authors[$i] . ', ';
+               }
+               else $author .= $authors[$i] . ', ';
+          }
+    		}
         $coreInfo = ' <span class="bibauthor">'.$author.'</span>' . $title ;}
       else $coreInfo = $title;
 
