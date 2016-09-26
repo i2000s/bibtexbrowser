@@ -23,6 +23,8 @@
     bibtexbrowser_configure('PAGE_SIZE','29');
     // Change the default frame.
     define('BIBTEXBROWSER_DEFAULT_FRAME','all');
+    // Define whether to open GSID citation link in a new window. Default is true, code written by Xiaodong Qi.
+    @define('BIBTEXBROWSER_GSID_LINKS_IN_NEW_WINDOW',true);
 
     function my_sectioning() {
         return
@@ -151,7 +153,7 @@
     Class CustomWrapper {
         function CustomWrapper(&$content, $metatags=array()) {
             //header ("Content-Type:application/xhtml+xml; charset=utf-8");
-            echo '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+            //echo '<?xml version="1.0" encoding="UTF-8"?>'."\n";
 ?>
             <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
             <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">

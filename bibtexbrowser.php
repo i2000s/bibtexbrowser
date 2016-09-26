@@ -130,6 +130,8 @@ if (defined('ENCODING')) {
 @define('BIBTEXBROWSER_ARXIV_LINKS',true);
 // do we add [gsid] links (Google Scholar)?
 @define('BIBTEXBROWSER_GSID_LINKS',true);
+// Whether to open GSID citation link in a new window. There is a problem to open it with _self and _top.
+@define('BIBTEXBROWSER_GSID_LINKS_IN_NEW_WINDOW',true);
 
 // should pdf, doi, url, arxiv, gsid links be opened in a new window?
 @define('BIBTEXBROWSER_LINKS_TARGET','_self');// can be _blank (new window), _top (with frames)
@@ -1348,7 +1350,7 @@ class BibEntry {
   function getGSLink($iconurl=NULL) {
     $str = $this->getIconOrTxt('cites',$iconurl);
     if ($this->hasField('gsid')) {
-        return ' <a'.get_target().' href="http://scholar.google.com/scholar?cites='.$this->getField("gsid").'">'.$str.'</a>';
+        return ' <a'.(BIBTEXBROWSER_GSID_LINKS_IN_NEW_WINDOW?' target="_blank" ':'').' href="http://scholar.google.com/scholar?cites='.$this->getField("gsid").'">'.$str.'</a>';
     }
     return '';
   }
@@ -4115,7 +4117,7 @@ function HTMLTemplate(&$content) {
 
 // when we load a page with AJAX
 // the HTTP header is taken into account, not the <meta http-equiv>
-header('Content-type: text/html; charset='.OUTPUT_ENCODING);
+//header('Content-type: text/html; charset='.OUTPUT_ENCODING);
 echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'."\n";
 
 ?>

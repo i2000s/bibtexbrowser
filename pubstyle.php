@@ -9,11 +9,11 @@
       // title
       // usually in bold: .bibtitle { font-weight:bold; }
       $title = '<span class="bibtitle"  itemprop="name">&quot;'.$title.'&quot;</span>';
-      if ($bibentry->hasField('url')) $title = ' <a'.(BIBTEXBROWSER_BIB_IN_NEW_WINDOW?' target="_blank" ':'').' href="'.$bibentry->getField('url').'">'.$title.'</a>';
+      if ($bibentry->hasField('url')) $title = ' <a'.get_target().' href="'.$bibentry->getField('url').'">'.$title.'</a>';
 
 
       // author
-      // All authors will be abbreviated for their first names, and the last author--if more than 1--will be after the key word "and". 
+      // All authors will be abbreviated for their first names, and the last author--if more than 1--will be after the key word "and".
       $author = '';
       if ($bibentry->hasField('author')) {
         $authors = $bibentry->getRawAuthors();
@@ -145,19 +145,19 @@
       if ($publisher!='') $entry[] = '<span class="bibpublisher">'.$publisher.'</span>';
 
       /* Volume and issue number (some journals use Issue while some use Number.) */
-      if ($bibentry->hasField('volume')) { //$entry[] =  __('volume').' '.$bibentry->getField("volume");  
+      if ($bibentry->hasField('volume')) { //$entry[] =  __('volume').' '.$bibentry->getField("volume");
          /* if ($bibentry->hasField('number')) {$entry[] = '<span itemprop="volumenumber">'.$bibentry->getField("volume").'</span>'.'(<span itemprop="issuenumber">'.$bibentry->getField("number").'</span>)';}
          elseif ($bibentry->hasField('issue')) {$entry[] = '<span itemprop="volumenumber">'.$bibentry->getField("volume").'</span>'.'(<span itemprop="issuenumber">'.$bibentry->getField("issue").'</span>)';}
          else $entry[] =  __('volume').' '.$bibentry->getField("volume");  */
          $entry[] = '<span itemprop="volume"><b>'.$bibentry->getField("volume").'</b></span>';
         }
 
-        
+
       if ($bibentry->hasField(YEAR)) {
             if ($bibentry->hasField('pages')) {
                 $entry[] = '<span itemprop="pagenumbers">'.$bibentry->getField("pages").'</span> <span itemprop="datePublished">('.$bibentry->getYear().')</span>';
             }
-            else 
+            else
                 $entry[] = '<span itemprop="datePublished">('.$bibentry->getYear().')</span>';
       }
       else {
