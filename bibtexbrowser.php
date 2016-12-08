@@ -913,7 +913,7 @@ class BibDBBuilder extends ParserDelegate {
 
     // we add a key if there is no key
     if (!$this->currentEntry->hasField(Q_KEY) && $this->currentEntry->getType()!='string') {
-      $this->currentEntry->setField(Q_KEY,md5($this->currentEntry->getTitle().implode('',$this->currentEntry->getRawAuthors())));
+      $this->currentEntry->setField(Q_KEY,md5($entrysource));
     }
 
     // we set the fulltext
@@ -1346,7 +1346,7 @@ class BibEntry {
 
   /** GS (Google Scholar) are a special kind of links, where the url depends on the google scholar id */
   function getGSLink($iconurl=NULL) {
-    $str = $this->getIconOrTxt('cites',$iconurl);
+    $str = $this->getIconOrTxt('citations',$iconurl);
     if ($this->hasField('gsid')) {
         return ' <a'.get_target().' href="http://scholar.google.com/scholar?cites='.$this->getField("gsid").'">'.$str.'</a>';
     }
@@ -2365,14 +2365,6 @@ function DefaultBibliographyStyle(&$bibentry) {
 
   $result = implode(", ",$entry).'.';
 
-  // some comments (e.g. acceptance rate)?
-  if ($bibentry->hasField('comment')) {
-      $result .=  " <span class=\"bibcomment\">(".$bibentry->getField("comment").")</span>";
-  }
-  if ($bibentry->hasField('note')) {
-      $result .=  " (".$bibentry->getField("note").")";
-  }
-
   // add the Coin URL
   $result .=  $bibentry->toCoins();
 
@@ -2470,11 +2462,6 @@ function JanosBibliographyStyle(&$bibentry) {
   if ($bibentry->hasField(YEAR)) $entry[] = $bibentry->getYear();
 
   $result = implode(", ",$entry).'.';
-
-  // some comments (e.g. acceptance rate)?
-  if ($bibentry->hasField('comment')) {
-      $result .=  " (".$bibentry->getField("comment").")";
-  }
 
   // add the Coin URL
   $result .=  "\n".$bibentry->toCoins();

@@ -598,6 +598,31 @@ class BTBTest extends PHPUnit_Framework_TestCase {
         $this->assertFalse($first_entry->hasField('author'));
     }
 
+    function testdefaultkey() {
+        bibtexbrowser_configure('BIBTEXBROWSER_BIBTEX_VIEW', 'original');
+        $bibtex = "@article{title={An article Book},author = {Martin Monperrus and Foo Ac\'e and Monperrus, Martin}}";
+        $key = md5($bibtex);
+        $test_data = fopen('php://memory','x+');
+        fwrite($test_data, $bibtex);
+        fseek($test_data,0);
+        $db = new BibDataBase();
+        $db->update_internal("inline", $test_data);
+        $entry=$db->getEntryByKey($key);
+        $this->assertEquals($bibtex, $entry->getText());
+    }
+
+    function testscholarlink() {
+        bibtexbrowser_configure('BIBTEXBROWSER_BIBTEX_VIEW', 'original');
+        $bibtex = "@article{key,title={An article Book},gsid={1234},author = {Martin Monperrus and Foo Ac\'e and Monperrus, Martin}}";
+        $test_data = fopen('php://memory','x+');
+        fwrite($test_data, $bibtex);
+        fseek($test_data,0);
+        $db = new BibDataBase();
+        $db->update_internal("inline", $test_data);
+        $entry=$db->getEntryByKey("key");
+        $this->assertContains('<a href="http://scholar.google.com/scholar?cites=1234">[citations]</a>', $entry->toHTML());
+    }
+    
 } // end class
 
 @copy('bibtexbrowser.local.php.bak','bibtexbrowser.local.php');
