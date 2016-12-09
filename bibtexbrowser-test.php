@@ -620,7 +620,7 @@ class BTBTest extends PHPUnit_Framework_TestCase {
         $db = new BibDataBase();
         $db->update_internal("inline", $test_data);
         $entry=$db->getEntryByKey("key");
-        $this->assertContains('<a href="https://scholar.google.com/scholar?cites=1234">[citations]</a>', $entry->toHTML());
+        $this->assertContains('<a target="_blank"  href="https://scholar.google.com/scholar?cites=1234">[citations]</a>', $entry->toHTML());
     }
     
 } // end class
