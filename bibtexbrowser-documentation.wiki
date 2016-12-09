@@ -513,6 +513,17 @@ Use ''bibtexbrowser-cli.php''. For instance:
 php bibtexbrowser-cli.php mybib.bib --id classical --set-title \"a new title\" --id with_abstract --set-title \"a new title\" --set-year 1990
 </pre>
 
+====How to customize the target window of opening those DOI, URL, arXiv, GSID or other links?====
+Add in ''bibtexbrowser.local.php'':
+<pre>
+&lt;?php
+@define('BIBTEXBROWSER_GSID_LINKS_IN_NEW_WINDOW',true); // or "false" to open gsid links in the current window.
+@define('BIBTEXBROWSER_LINKS_TARGET',_blank); //or, you use "_top" to open the DOI, URL, arXiv or other links as an embedded frame or "_self" (default) on the current window. 
+?>
+</pre>
+Notice that `BIBTEXBROWSER_LINKS_TARGET` only controls links other than `BIBTEXBROWSER_GSID_LINKS_IN_NEW_WINDOW`. 
+
+
 =====Related tools=====
 
 Old-fashioned:
