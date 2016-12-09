@@ -24,7 +24,8 @@
     // Change the default frame.
     define('BIBTEXBROWSER_DEFAULT_FRAME','all');
     // Define whether to open GSID citation link in a new window. Default is true, code written by Xiaodong Qi.
-    @define('BIBTEXBROWSER_GSID_LINKS_IN_NEW_WINDOW',true);
+    define('BIBTEXBROWSER_GSID_LINKS_IN_NEW_WINDOW',true);
+    define('BIBTEXBROWSER_LINKS_TARGET',_blank); //Open links in new windows by default. Otherwise, http links opened in a frame ('_top') or the same page ('_self') may not work for https sites.
 
     function my_sectioning() {
         return
