@@ -915,7 +915,7 @@ class BibDBBuilder extends ParserDelegate {
 
     // we add a key if there is no key
     if (!$this->currentEntry->hasField(Q_KEY) && $this->currentEntry->getType()!='string') {
-      $this->currentEntry->setField(Q_KEY,md5($this->currentEntry->getTitle().implode('',$this->currentEntry->getRawAuthors())));
+      $this->currentEntry->setField(Q_KEY,md5($entrysource));
     }
 
     // we set the fulltext
@@ -1341,16 +1341,16 @@ class BibEntry {
   function getDoiLink($iconurl=NULL) {
     $str = $this->getIconOrTxt('doi',$iconurl);
     if ($this->hasField('doi')) {
-        return '<a'.get_target().' href="http://dx.doi.org/'.$this->getField('doi').'">'.$str.'</a>';
+        return '<a'.get_target().' href="https://dx.doi.org/'.$this->getField('doi').'">'.$str.'</a>';
     }
     return '';
   }
 
   /** GS (Google Scholar) are a special kind of links, where the url depends on the google scholar id */
   function getGSLink($iconurl=NULL) {
-    $str = $this->getIconOrTxt('cites',$iconurl);
+    $str = $this->getIconOrTxt('citations',$iconurl);
     if ($this->hasField('gsid')) {
-        return ' <a'.(BIBTEXBROWSER_GSID_LINKS_IN_NEW_WINDOW?' target="_blank" ':'').' href="http://scholar.google.com/scholar?cites='.$this->getField("gsid").'">'.$str.'</a>';
+        return ' <a'.(BIBTEXBROWSER_GSID_LINKS_IN_NEW_WINDOW?' target="_blank" ':'').' href="https://scholar.google.com/scholar?cites='.$this->getField("gsid").'">'.$str.'</a>';
     }
     return '';
   }
@@ -1359,7 +1359,7 @@ class BibEntry {
   function getArxivLink($iconurl=NULL) {
     $str = $this->getIconOrTxt('arxiv',$iconurl);
     if ($this->hasField('arxiv')) {
-        return '<a'.get_target().' href="http://arxiv.org/abs/'.$this->getField('arxiv').'">'.$str.'</a>';
+        return '<a'.get_target().' href="https://arxiv.org/abs/'.$this->getField('arxiv').'">'.$str.'</a>';
     }
     return '';
   }
@@ -1915,7 +1915,7 @@ class BibEntry {
 
     // Fields that should be hyperlinks
     // the order matters
-    $hyperlinks = array('url' => '%O', 'file' => '%O', 'pdf' => '%O', 'doi' => 'http://dx.doi.org/%O', 'arxiv' => 'http://arxiv.org/abs/%O','gsid' => 'http://scholar.google.com/scholar?cites=%O');
+    $hyperlinks = array('url' => '%O', 'file' => '%O', 'pdf' => '%O', 'doi' => 'https://dx.doi.org/%O', 'arxiv' => 'https://arxiv.org/abs/%O','gsid' => 'https://scholar.google.com/scholar?cites=%O');
 
     $vals = array();
     foreach ($hyperlinks as $field => $url) {
@@ -2285,7 +2285,7 @@ function DefaultBibliographyStyle(&$bibentry) {
 
     $authors = array();
     foreach ($bibentry->getFormattedAuthorsArray() as $a) {
-       $authors[]='<span itemprop="author" itemtype="http://schema.org/Person">'.$a.'</span>';
+       $authors[]='<span itemprop="author" itemtype="https://schema.org/Person">'.$a.'</span>';      
     }
     $coreInfo .= $bibentry->implodeAuthors($authors);
 
@@ -2367,18 +2367,10 @@ function DefaultBibliographyStyle(&$bibentry) {
 
   $result = implode(", ",$entry).'.';
 
-  // some comments (e.g. acceptance rate)?
-  if ($bibentry->hasField('comment')) {
-      $result .=  " <span class=\"bibcomment\">(".$bibentry->getField("comment").")</span>";
-  }
-  if ($bibentry->hasField('note')) {
-      $result .=  " (".$bibentry->getField("note").")";
-  }
-
   // add the Coin URL
   $result .=  $bibentry->toCoins();
 
-  return '<span itemscope="" itemtype="http://schema.org/ScholarlyArticle">'.$result.'</span>';
+  return '<span itemscope="" itemtype="https://schema.org/ScholarlyArticle">'.$result.'</span>';
 }
 
 
@@ -2472,11 +2464,6 @@ function JanosBibliographyStyle(&$bibentry) {
   if ($bibentry->hasField(YEAR)) $entry[] = $bibentry->getYear();
 
   $result = implode(", ",$entry).'.';
-
-  // some comments (e.g. acceptance rate)?
-  if ($bibentry->hasField('comment')) {
-      $result .=  " (".$bibentry->getField("comment").")";
-  }
 
   // add the Coin URL
   $result .=  "\n".$bibentry->toCoins();
@@ -4117,12 +4104,11 @@ function HTMLTemplate(&$content) {
 
 // when we load a page with AJAX
 // the HTTP header is taken into account, not the <meta http-equiv>
-//header('Content-type: text/html; charset='.OUTPUT_ENCODING);
-echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'."\n";
+header('Content-type: text/html; charset='.OUTPUT_ENCODING);
+echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'."\n";
 
 ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<html xmlns="https://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=<?php echo OUTPUT_ENCODING ?>"/>
 <meta name="generator" content="bibtexbrowser v__GITHUB__" />
@@ -4384,7 +4370,7 @@ class RSSDisplay {
 //
 
 ?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:atom="https://www.w3.org/2005/Atom">
    <channel>
       <title><?php echo $this->title;?></title>
       <link>http://<?php echo $_SERVER['HTTP_HOST'].htmlentities($_SERVER['REQUEST_URI']);?></link>
@@ -4750,8 +4736,8 @@ class Dispatcher {
   function frameset() {    ?>
 
 
-    <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Frameset//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd">
-    <html  xmlns="http://www.w3.org/1999/xhtml">
+    <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Frameset//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd">
+    <html  xmlns="https://www.w3.org/1999/xhtml">
     <head>
     <meta name="generator" content="bibtexbrowser v__GITHUB__" />
     <meta http-equiv="Content-Type" content="text/html; charset=<?php echo OUTPUT_ENCODING ?>"/>
